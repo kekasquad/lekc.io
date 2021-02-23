@@ -1,0 +1,64 @@
+@import '../variables.css';
+
+.Auth-component {
+    width: 40%;
+    height: 60vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.Auth-form_container {
+    width: 100%;
+}
+
+.Auth-form_control_block {
+    display: flex;
+    width: 100%;
+}
+
+.Auth-form_control_button {
+    width: 50%;
+    height: 3rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    background-color: var(--common-grey);
+}
+
+.Auth-form_control_button.active {
+    background-color: var(--active-tab-blue);
+    box-shadow: inset 0 -4px 0 0 var(--dark-blue-alpha);
+}
+
+.Auth-form {
+    background-color: var(--light-light-grey);
+    padding: 2rem 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.Auth-form_field {
+    width: 60%;
+    padding: 0.5rem 0;
+}
+
+.Auth-form_field input {
+    border: 0.5px solid var(--dark-blue);
+    border-radius: 2px;
+    height: 1.4rem;
+    width: 100%;
+    margin: 0.5rem auto;
+    padding: 2px 0 2px 0.5rem;
+}
+
+.Auth-form_field label {
+    display: block;
+    margin-left: 1.5rem;
+}
+
+.Auth-form_submit_button {
+    margin-top: 0.5rem;
+}
