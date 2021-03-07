@@ -1,5 +1,6 @@
 import React from 'react';
 import './Auth.css';
+import { FORM_ERROR_MESSAGES } from '../constants';
 
 interface IProps {
     loginMode?: boolean;
@@ -7,10 +8,17 @@ interface IProps {
 
 interface IState {
     loginMode?: boolean;
-    login?: string,
-    password?: string
-    name?: string,
-    repeatPassword?: string
+    login?: string;
+    password?: string;
+    name?: string;
+    repeatPassword?: string;
+    formErrors?: {
+        login?: string;
+        password?: string;
+        name?: string;
+        repeatPassword?: string;
+    };
+    errorText?: string;
 }
 
 
@@ -23,15 +31,18 @@ export default class Auth extends React.Component<IProps, IState> {
             login: '',
             name: '',
             password: '',
-            repeatPassword: ''
+            repeatPassword: '',
+            formErrors: {},
+            errorText: ''
         };
 
         this.handleInputChange = this.handleInputChange.bind(this);
+        this.submitForm = this.submitForm.bind(this);
     }
 
     flushControls(): void {
         this.setState(
-            { login: '', name: '', password: '', repeatPassword: '' }
+            { login: '', name: '', password: '', repeatPassword: '', formErrors: {} }
         );
     }
 
@@ -47,24 +58,49 @@ export default class Auth extends React.Component<IProps, IState> {
         );
     }
 
+    validateFormFields(): boolean {
+        const errors: any = {};
+        for (let field of ['login', 'password']) {
+            if (!((this.state as any)[field])) {
+                errors[field] = FORM_ERROR_MESSAGES.emptyValue;
+            }
+        }
+        if (!this.state.loginMode) {
+            if (this.state.repeatPassword !== this.state.password) {
+                errors.repeatPassword = FORM_ERROR_MESSAGES.repeatedPasswordMismatch;
+            }
+        }
+        if (Object.keys(errors).length === 0) { return true; }
+        this.setState({ formErrors: errors });
+        return false;
+    }
+
+    submitForm(event: React.MouseEvent): void {
+        event.preventDefault();
+        if (!this.validateFormFields()) {
+            this.setState({ errorText: FORM_ERROR_MESSAGES.incorrectData });
+            return;
+        }
+    }
+
     loginForm(): JSX.Element {
         return (
             <form className='Auth-form'>
                 <div className="Auth-form_field">
-                    <label>Login*</label>
+                    <label>Login*<span className="form_error">{this.state.formErrors?.login}</span></label>
                     <input
-                        type='text' required name='login'
+                        type='text' name='login'
                         value={this.state.login}
                         onChange={this.handleInputChange}/>
                 </div>
                 <div className="Auth-form_field">
-                    <label>Password*</label>
+                    <label>Password*<span className="form_error">{this.state.formErrors?.password}</span></label>
                     <input
-                        type='password' required name='password'
+                        type='password' name='password'
                         value={this.state.password}
                         onChange={this.handleInputChange}/>
                 </div>
-                <button className='Auth-form_submit_button common_button'>Login</button>
+                <button className='Auth-form_submit_button common_button' onClick={this.submitForm}>Login</button>
             </form>
         );
     }
