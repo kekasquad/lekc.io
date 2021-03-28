@@ -22,8 +22,6 @@ export default class Stream extends React.Component {
         this.stop = this.stop.bind(this);
         this.dispose = this.dispose.bind(this);
         this.sendMessage = this.sendMessage.bind(this);
-
-        const port = 4000;
     }
 
     componentDidMount() {
