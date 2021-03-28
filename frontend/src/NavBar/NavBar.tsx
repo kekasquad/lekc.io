@@ -32,12 +32,14 @@ export default class NavBar extends React.Component<IProps, IState> {
     super(props);
     this.state = {
       currentItem: props.currentItem,
-      joinMode: props.joinMode === false ? false : true,
+      joinMode: props.joinMode === true ? true : false,
       roomID: '',
       roomPassword: '',
       fieldsErrors: {},
       errorText: ''
     };
+    console.log(props);
+    console.log(this.state);
   }
 
   flushControls(): void {
