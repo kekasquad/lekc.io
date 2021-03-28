@@ -10,6 +10,8 @@
     "@types/node": "^12.20.4",
     "@types/react": "^17.0.2",
     "@types/react-dom": "^17.0.1",
+    "kurento-client": "^6.16.0",
+    "kurento-utils": "^6.16.0",
     "react": "^17.0.1",
     "react-dom": "^17.0.1",
     "react-router-dom": "^5.2.0",
@@ -41,6 +43,7 @@
     ]
   },
   "devDependencies": {
+    "@types/kurento-utils": "^6.7.1",
     "@types/react-router-dom": "^5.1.7"
   }
 }
