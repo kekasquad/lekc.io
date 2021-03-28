@@ -14,10 +14,10 @@ interface Viewer {
 }
 
 let idCounter = 0;
-const candidatesQueue: Map<string, RTCIceCandidate[]> = new Map<string, any>();
+const candidatesQueue: Map<string, RTCIceCandidate[]> = new Map<string, RTCIceCandidate[]>();
 let kurentoClient: kurento.ClientInstance | null = null;
 let presenter: Presenter | null = null;
-const viewers: Map<string, Viewer> = new Map();
+const viewers: Map<string, Viewer> = new Map<string, any>();
 const noPresenterMessage = 'No active presenter. Try again later...';
 const presenterExistsMessage = 'Another user is currently acting as presenter. Try again later ...';
 
@@ -28,9 +28,8 @@ export function nextUniqueId(): string {
 }
 
 export function stop(sessionId: string): void {
-	if (presenter !== null && presenter.id == sessionId) {
-		for (const viewerSessionId in viewers.keys()) {
-			const viewer: Viewer | undefined = viewers.get(viewerSessionId);
+	if (presenter !== null && presenter.id === sessionId) {
+		for (const viewer of viewers.values()) {
 			if (viewer?.ws) {
 				viewer.ws.send(JSON.stringify({
 					id: 'stopCommunication'
@@ -70,16 +69,9 @@ export function startPresenter(sessionId: string, ws: ws, sdpOffer: string): Pro
 		id: sessionId,
 		pipeline: null,
 		webRtcEndpoint: null
-	}
-	console.log('here');
-	console.log(kurentoClient);
+	};
 	return (kurentoClient ? Promise.resolve(kurentoClient) : kurento(wsUri))
 		.then((client: kurento.ClientInstance) => {
-			console.log('HERE');
-			if (presenter === null) {
-				throw noPresenterMessage;
-			}
-
 			if (kurentoClient === null) {
 				kurentoClient = client;
 			}
@@ -102,7 +94,6 @@ export function startPresenter(sessionId: string, ws: ws, sdpOffer: string): Pro
 
 			const candidatesQueueItem: RTCIceCandidate[] | undefined = candidatesQueue.get(sessionId);
 			if (candidatesQueueItem) {
-				console.log('Item yest');
 				while(candidatesQueueItem && candidatesQueueItem.length) {
 					const candidate: RTCIceCandidate | undefined = candidatesQueueItem.shift();
 					if (candidate) {
@@ -110,7 +101,6 @@ export function startPresenter(sessionId: string, ws: ws, sdpOffer: string): Pro
 					}
 				}
 			}
-			console.log('NOpe');
 
 			presenter.webRtcEndpoint.on('IceCandidateFound', (
 					event: kurento.Event<'IceCandidateFound', {candidate: kurento.IceCandidate}>
@@ -127,8 +117,8 @@ export function startPresenter(sessionId: string, ws: ws, sdpOffer: string): Pro
 			return webRtcEndpoint.processOffer(sdpOffer);
 		})
 		.then((sdpAnswer: string) => {
-			if (presenter) {
-				return presenter.webRtcEndpoint?.gatherCandidates().then(() => sdpAnswer);
+			if (presenter && presenter.webRtcEndpoint) {
+				return presenter.webRtcEndpoint.gatherCandidates().then(() => sdpAnswer);
 			} else {
 				throw noPresenterMessage;
 			}
@@ -178,17 +168,13 @@ export function startViewer(sessionId: string, ws: any, sdpOffer: any) {
 				}
 			);
 
-			return webRtcEndpoint.processOffer(sdpOffer);
+			return webRtcEndpoint.processOffer(sdpOffer).then((sdpAnswer: string) => { return { sdpAnswer, viewerWebRtcEndpoint: webRtcEndpoint } });
 		})
-		.then((sdpAnswer: string) => {
+		.then(({ sdpAnswer, viewerWebRtcEndpoint }: { sdpAnswer: string, viewerWebRtcEndpoint: WebRtcEndpoint }) => {
 			if (presenter) {
-				return presenter?.webRtcEndpoint?.connect(presenter.webRtcEndpoint)
+				return presenter?.webRtcEndpoint?.connect(viewerWebRtcEndpoint)
 					.then(() => {
-						if (presenter) {
-							return presenter.webRtcEndpoint?.gatherCandidates();
-						} else {
-							throw noPresenterMessage;
-						}
+						return viewerWebRtcEndpoint.gatherCandidates();
 					})
 					.then(() => sdpAnswer);
 			} else {
@@ -224,9 +210,10 @@ export function onIceCandidate(sessionId: string, _candidate: RTCIceCandidate): 
 		else {
 			console.info('Queueing candidate');
 			if (!candidatesQueue.has(sessionId)) {
-				candidatesQueue.set(sessionId, []);
+				candidatesQueue.set(sessionId, [candidate]);
+			} else {
+				candidatesQueue.get(sessionId)?.push(candidate);
 			}
-			candidatesQueue.get(sessionId)?.push(candidate);
 		}
 	}
 }

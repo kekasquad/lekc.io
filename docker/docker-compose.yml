@@ -23,8 +23,8 @@ services:
       - ./config/kurento.conf.json:/etc/kurento/kurento.conf.json
       - ./config/cert+key.pem:/etc/kurento/cert+key.pem
 
-  coturn:
-    image: 'instrumentisto/coturn'
-    network_mode: host
-    volumes:
-      - ./config/turnserver.conf:/etc/turnserver.conf
+#  coturn:
+#    image: 'instrumentisto/coturn'
+#    network_mode: host
+#    volumes:
+#      - ./config/turnserver.conf:/etc/turnserver.conf

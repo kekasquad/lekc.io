@@ -4,14 +4,12 @@ import { WebRtcPeer } from 'kurento-utils';
 
 export default class Stream extends React.Component {
 
-    ws: WebSocket;
+    ws: WebSocket | undefined;
     webRtcPeer: any;
-    video: HTMLVideoElement | null;
+    video: any;
 
     constructor(props: any) {
         super(props);
-
-        this.video = document.querySelector('#Stream-video');
 
         this.onError = this.onError.bind(this);
         this.presenterResponse = this.presenterResponse.bind(this);
@@ -26,33 +24,37 @@ export default class Stream extends React.Component {
         this.sendMessage = this.sendMessage.bind(this);
 
         const port = 4000;
-        // this.ws = new WebSocket('wss://' + window.location.host + '/one2many');
-        this.ws = new WebSocket(`wss://localhost:${port}/one2many`);
+    }
+
+    componentDidMount() {
+        this.video = document.querySelector('#Stream-video');
+
+        this.ws = new WebSocket(`wss://localhost:4000/one2many`);
         this.ws.onmessage = (message) => {
             const parsedMessage = JSON.parse(message.data);
             console.log('Received message: ' + message.data);
-    
+
             switch (parsedMessage.id) {
-            case 'presenterResponse':
-                this.presenterResponse(parsedMessage);
-                break;
-            case 'viewerResponse':
-                this.viewerResponse(parsedMessage);
-                break;
-            case 'stopCommunication':
-                this.dispose();
-                break;
-            case 'iceCandidate':
-                this.webRtcPeer.addIceCandidate(parsedMessage.candidate)
-                break;
-            default:
-                console.error('Unrecognized message', parsedMessage);
+                case 'presenterResponse':
+                    this.presenterResponse(parsedMessage);
+                    break;
+                case 'viewerResponse':
+                    this.viewerResponse(parsedMessage);
+                    break;
+                case 'stopCommunication':
+                    this.dispose();
+                    break;
+                case 'iceCandidate':
+                    this.webRtcPeer.addIceCandidate(parsedMessage.candidate)
+                    break;
+                default:
+                    console.error('Unrecognized message', parsedMessage);
             }
         }
     }
 
     componentWillUnmount() {
-        this.ws.close();
+        this.ws?.close();
     }
 
     onError(error: any) {
@@ -92,19 +94,14 @@ export default class Stream extends React.Component {
                 if (error) {
                     return this.onError(error);
                 }
-            });
-            if (this.webRtcPeer) {
                 this.webRtcPeer.generateOffer(this.onOfferPresenter);
-                console.log('NO ERROR');
-            }
+            });
         }
     }
 
     onOfferPresenter(error: any, offerSdp: any) {
         if (error) return this.onError(error);
-        console.log('noerror');
-
-        var message = {
+        const message = {
             id: 'presenter',
             sdpOffer: offerSdp
         };
@@ -114,7 +111,7 @@ export default class Stream extends React.Component {
     viewer() {
         if (!this.webRtcPeer) {
 
-            var options = {
+            const options = {
                 remoteVideo: this.video,
                 onicecandidate: this.onIceCandidate
             }
@@ -123,18 +120,15 @@ export default class Stream extends React.Component {
                 if (error) {
                     return this.onError(error);
                 }
-            });
-            if (this.webRtcPeer) {
                 this.webRtcPeer.generateOffer(this.onOfferViewer);
-                console.log('ALSO NO ERROR');
-            }
+            });
         }
     }
 
     onOfferViewer(error: any, offerSdp: any) {
         if (error) return this.onError(error)
 
-        var message = {
+        const message = {
             id: 'viewer',
             sdpOffer: offerSdp
         }
@@ -144,7 +138,7 @@ export default class Stream extends React.Component {
     onIceCandidate(candidate: any) {
         console.log('Local candidate' + JSON.stringify(candidate));
 
-        var message = {
+        const message = {
             id: 'onIceCandidate',
             candidate: candidate
         }
@@ -169,9 +163,9 @@ export default class Stream extends React.Component {
     }
 
     sendMessage(message: any) {
-        var jsonMessage = JSON.stringify(message);
+        const jsonMessage = JSON.stringify(message);
         console.log('Sending message: ' + jsonMessage);
-        this.ws.send(jsonMessage);
+        this.ws?.send(jsonMessage);
     }
 
     render(): JSX.Element {

@@ -22,10 +22,10 @@ const server: https.Server = https.createServer(options, app).listen(PORT, (): v
     console.log(`Server is listening on port ${PORT}`);
 });
 
-var wss: ws.Server = new ws.Server({
+const wss: ws.Server = new ws.Server({
     server: server,
     path: '/one2many'
-});
+}, () => { console.log('WS started') });
 
 wss.on('connection', function(ws: ws) {
 
@@ -50,7 +50,9 @@ wss.on('connection', function(ws: ws) {
             case 'presenter':
                 startPresenter(sessionId, ws, message.sdpOffer)
                     .then((sdpAnswer: string | undefined) => {
-                        console.log('OOOOOOOOOOOOO');
+                        if (!sdpAnswer) {
+                            throw 'sdpAnswer is undefined';
+                        }
                         ws.send(JSON.stringify({
                             id: 'presenterResponse',
                             response: 'accepted',
@@ -58,7 +60,6 @@ wss.on('connection', function(ws: ws) {
                         }));
                     })
                     .catch((error: string) => {
-                        console.log('AAAAAAAAAAAA');
                         ws.send(JSON.stringify({
                             id: 'presenterResponse',
                             response: 'rejected',
