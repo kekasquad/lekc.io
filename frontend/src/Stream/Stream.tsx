@@ -82,17 +82,20 @@ export default class Stream extends React.Component {
 
     presenter() {
         if (!this.webRtcPeer) {
-
-            const options = {
-                localVideo: this.video,
-                onicecandidate: this.onIceCandidate
-            }
-
-            this.webRtcPeer = WebRtcPeer.WebRtcPeerSendonly(options, (error) => {
-                if (error) {
-                    return this.onError(error);
+            const mediaDevices = navigator.mediaDevices as any;
+            mediaDevices.getDisplayMedia({ video: true }).then((stream: MediaStream) => {
+                const options = {
+                    localVideo: this.video,
+                    videoStream: stream,
+                    onicecandidate: this.onIceCandidate
                 }
-                this.webRtcPeer.generateOffer(this.onOfferPresenter);
+
+                this.webRtcPeer = WebRtcPeer.WebRtcPeerSendonly(options, (error) => {
+                    if (error) {
+                        return this.onError(error);
+                    }
+                    this.webRtcPeer.generateOffer(this.onOfferPresenter);
+                });
             });
         }
     }
