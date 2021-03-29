@@ -38,8 +38,14 @@ export default class NavBar extends React.Component<IProps, IState> {
       fieldsErrors: {},
       errorText: ''
     };
-    console.log(props);
-    console.log(this.state);
+    
+    this.handleInputChange = this.handleInputChange.bind(this);
+  }
+
+  handleInputChange(event: React.ChangeEvent<HTMLInputElement>): void {
+      this.setState(
+          { [event.target.name]: event.target.value }
+      );
   }
 
   flushControls(): void {
@@ -60,23 +66,15 @@ export default class NavBar extends React.Component<IProps, IState> {
   }
 
   validateFormFields(): boolean {
-      const errors: any = {};
-      for (let field of ['id']) {
-          if (!((this.state as any)[field])) {
-              errors[field] = FORM_ERROR_MESSAGES.emptyValue;
-          }
-      }
-      if (Object.keys(errors).length === 0) { return true; }
-      this.setState({ fieldsErrors: errors });
       return false;
   }
 
   submitForm(event: React.MouseEvent): void {
-      event.preventDefault();
-      if (!this.validateFormFields()) {
-          this.setState({ errorText: FORM_ERROR_MESSAGES.incorrectData });
-          return;
-      }
+      // event.preventDefault();
+      // if (!this.validateFormFields()) {
+      //     this.setState({ errorText: FORM_ERROR_MESSAGES.incorrectData });
+      //     return;
+      // }
   }
 
   render(): JSX.Element {
@@ -134,14 +132,16 @@ export default class NavBar extends React.Component<IProps, IState> {
             <div className="form_join_field">
               <label>Room ID*<span className="form_error">{this.state.fieldsErrors?.roomID}</span></label>
               <input
-                type='text' name='id'
-                value={this.state.roomID}/>
+                type='text' name='roomID'
+                value={this.state.roomID}
+                onChange={this.handleInputChange}/>
             </div>
             <div className="form_join_field">
               <label>Password</label>
               <input
-                type='password' name='password'
-                value={this.state.roomPassword}/>
+                type='password' name='roomPassword'
+                value={this.state.roomPassword}
+                onChange={this.handleInputChange}/>
             </div>
             <button className='form_join_submit_button btn_text' onClick={this.submitForm}>Login</button>
           </form>
