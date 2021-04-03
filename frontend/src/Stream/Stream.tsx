@@ -1,6 +1,7 @@
 import React from 'react';
 import './Stream.css';
 import { WebRtcPeer } from 'kurento-utils';
+import NavBar from '../NavBar/NavBar';
 
 export default class Stream extends React.Component {
 
@@ -171,15 +172,18 @@ export default class Stream extends React.Component {
 
     render(): JSX.Element {
         return (
-            <div className="Stream-component">
-                <div className='Stream-control_buttons_group'>
-                    <button id='call' onClick={this.presenter}>Presenter</button>
-                    <button id='viewer' onClick={this.viewer}>Viewer</button>
-                    <button id='terminate' onClick={this.stop}>Stop</button>
+            <div className="kek">
+                <NavBar currentItem={1}/>
+                <div className="Stream-component">
+                    <div className='Stream-control_buttons_group'>
+                        <button id='call' onClick={this.presenter}>Presenter</button>
+                        <button id='viewer' onClick={this.viewer}>Viewer</button>
+                        <button id='terminate' onClick={this.stop}>Stop</button>
+                    </div>
+
+                    <video id='Stream-video' autoPlay={true}></video>
+
                 </div>
-
-                <video id='Stream-video' autoPlay={true}></video>
-
             </div>
         );
     }
