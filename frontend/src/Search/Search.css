@@ -1,0 +1,65 @@
+@import '../variables.css';
+
+.window {
+    width: 100%;
+}
+
+.search_container {
+    margin: auto;
+    width: 50%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+.search_container_results {
+    margin: auto;
+    width: 50%;
+}
+
+.search_inputs {
+    width: 100%;
+    display: flex;
+    flex-direction: row;
+}
+
+.item_stream {
+    margin: auto;
+    width: 60%;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+}
+
+.search_title {
+    margin-top: 3rem;
+    margin-bottom: 1.5rem;
+    font-size: 24px;
+}
+
+.item_stream_avatar {
+    height: 5rem;
+    width: 5rem;
+    vertical-align: middle;
+    margin: 0.5rem 1.5rem 0.5rem 0;
+    border: 2px solid var(--dark-blue);
+    border-radius: 50%;
+}
+
+.search_container input {
+    border: 0.5px solid var(--dark-blue);
+    border-radius: 2px;
+    height: 1.4rem;
+    width: 80%;
+    margin: 0.5rem auto;
+    padding: 2px 0 2px 0.5rem;
+}
+
+.search_btn {
+    margin-top: 0.5rem;
+    width: 10%;
+    height: 30px;
+    border: none;
+    background-color: var(--active-tab-blue);
+}
