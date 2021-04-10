@@ -49,21 +49,21 @@ wss.on('connection', async function(ws: ws) {
         switch (message.id) {
             case 'presenter':
                 try {
-                    const sdpAnswer: string = await startPresenter(sessionId, ws, message.sdpOffer);
-                    if (!sdpAnswer) {
-                        throw 'sdpAnswer is undefined';
-                    }
+                    const sdpAnswer: string = await startPresenter(sessionId, ws, message.type, message.sdpOffer);
                     ws.send(JSON.stringify({
-                        id: 'presenterResponse',
+                        id: 'sdpResponse',
+                        type: message.type,
                         response: 'accepted',
                         sdpAnswer: sdpAnswer
                     }));
                     break;
                 }
                 catch (error) {
+                    console.log(error);
                     await stop(sessionId);
                     ws.send(JSON.stringify({
-                        id: 'presenterResponse',
+                        id: 'sdpResponse',
+                        type: message.type,
                         response: 'rejected',
                         message: error
                     }));
@@ -71,18 +71,21 @@ wss.on('connection', async function(ws: ws) {
                 }
             case 'viewer':
                 try {
-                    const sdpAnswer: string = await startViewer(sessionId, ws, message.sdpOffer);
+                    const sdpAnswer: string = await startViewer(sessionId, ws, message.type, message.sdpOffer);
                     ws.send(JSON.stringify({
-                        id: 'viewerResponse',
+                        id: 'sdpResponse',
+                        type: message.type,
                         response: 'accepted',
                         sdpAnswer: sdpAnswer
                     }));
                     break;
                 }
                 catch (error) {
+                    console.log(error);
                     await stop(sessionId);
                     ws.send(JSON.stringify({
-                        id: 'viewerResponse',
+                        id: 'sdpResponse',
+                        type: message.type,
                         response: 'rejected',
                         message: error
                     }));
@@ -94,7 +97,7 @@ wss.on('connection', async function(ws: ws) {
                 break;
     
             case 'onIceCandidate':
-                await onIceCandidate(sessionId, message.candidate);
+                await onIceCandidate(sessionId, message.type, message.candidate);
                 break;
     
             default:

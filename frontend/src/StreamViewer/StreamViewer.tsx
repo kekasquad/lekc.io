@@ -6,27 +6,37 @@ import NavBar from '../NavBar/NavBar';
 export default class Stream extends React.Component {
 
     ws: WebSocket | undefined;
-    webRtcPeer: any;
-    video: any;
+    screenWebRtcPeer: WebRtcPeer | null = null;
+    webcamWebRtcPeer: WebRtcPeer | null = null;
+    screenVideo: any;
+    webcamVideo: any;
 
     constructor(props: any) {
         super(props);
 
         this.onError = this.onError.bind(this);
-        this.presenterResponse = this.presenterResponse.bind(this);
-        this.viewerResponse = this.viewerResponse.bind(this);
         this.presenter = this.presenter.bind(this);
-        this.onOfferPresenter = this.onOfferPresenter.bind(this);
         this.viewer = this.viewer.bind(this);
-        this.onOfferViewer = this.onOfferViewer.bind(this);
-        this.onIceCandidate = this.onIceCandidate.bind(this);
+        this.processSdpResponse = this.processSdpResponse.bind(this);
+
+        this._onOffer = this._onOffer.bind(this);
+        this.onOfferScreenPresenter = this.onOfferScreenPresenter.bind(this);
+        this.onOfferWebcamPresenter = this.onOfferWebcamPresenter.bind(this);
+        this.onOfferScreenViewer = this.onOfferScreenViewer.bind(this);
+        this.onOfferWebcamViewer = this.onOfferWebcamViewer.bind(this);
+
+        this._onIceCandidate = this._onIceCandidate.bind(this);
+        this.onScreenIceCandidate = this.onScreenIceCandidate.bind(this);
+        this.onWebcamIceCandidate = this.onWebcamIceCandidate.bind(this);
+
         this.stop = this.stop.bind(this);
         this.dispose = this.dispose.bind(this);
         this.sendMessage = this.sendMessage.bind(this);
     }
 
     componentDidMount() {
-        this.video = document.querySelector('#Stream-video');
+        this.screenVideo = document.querySelector('#Stream-screen_video');
+        this.webcamVideo = document.querySelector('#Stream-webcam_video');
 
         this.ws = new WebSocket(`wss://localhost:4000/one2many`);
         this.ws.onmessage = (message) => {
@@ -34,17 +44,17 @@ export default class Stream extends React.Component {
             console.log('Received message: ' + message.data);
 
             switch (parsedMessage.id) {
-                case 'presenterResponse':
-                    this.presenterResponse(parsedMessage);
-                    break;
-                case 'viewerResponse':
-                    this.viewerResponse(parsedMessage);
+                case 'sdpResponse':
+                    this.processSdpResponse(parsedMessage);
                     break;
                 case 'stopCommunication':
                     this.dispose();
                     break;
-                case 'iceCandidate':
-                    this.webRtcPeer.addIceCandidate(parsedMessage.candidate)
+                case 'screenIceCandidate':
+                    this.screenWebRtcPeer?.addIceCandidate(parsedMessage.candidate)
+                    break;
+                case 'webcamIceCandidate':
+                    this.webcamWebRtcPeer?.addIceCandidate(parsedMessage.candidate)
                     break;
                 default:
                     console.error('Unrecognized message', parsedMessage);
@@ -56,115 +66,143 @@ export default class Stream extends React.Component {
         this.ws?.close();
     }
 
-    onError(error: any) {
+    onError(error: any): any {
         console.error(error);
         return error;
     }
 
-    presenterResponse(message: any): void {
-        if (message.response != 'accepted') {
-            const errorMsg = message.message ? message.message : 'Unknow error';
-            console.warn('Call not accepted for the following reason: ' + errorMsg);
-            this.dispose();
-        } else {
-            this.webRtcPeer.processAnswer(message.sdpAnswer);
-        }
-    }
-
-    viewerResponse(message: any) {
-        if (message.response != 'accepted') {
-            const errorMsg = message.message ? message.message : 'Unknow error';
-            console.warn('Call not accepted for the following reason: ' + errorMsg);
-            this.dispose();
-        } else {
-            this.webRtcPeer.processAnswer(message.sdpAnswer);
-        }
-    }
-
-    presenter() {
-        if (!this.webRtcPeer) {
+    async presenter(): Promise<void> {
+        if (!this.screenWebRtcPeer) {
             const mediaDevices = navigator.mediaDevices as any;
-            mediaDevices.getDisplayMedia({ video: true }).then((stream: MediaStream) => {
-                const options = {
-                    localVideo: this.video,
-                    videoStream: stream,
-                    onicecandidate: this.onIceCandidate
-                }
-
-                this.webRtcPeer = WebRtcPeer.WebRtcPeerSendonly(options, (error) => {
-                    if (error) {
-                        return this.onError(error);
-                    }
-                    this.webRtcPeer.generateOffer(this.onOfferPresenter);
-                });
-            });
-        }
-    }
-
-    onOfferPresenter(error: any, offerSdp: any) {
-        if (error) return this.onError(error);
-        const message = {
-            id: 'presenter',
-            sdpOffer: offerSdp
-        };
-        this.sendMessage(message);
-    }
-
-    viewer() {
-        if (!this.webRtcPeer) {
-
+            const screenStream = await mediaDevices.getDisplayMedia({ video: true, audio: false });
             const options = {
-                remoteVideo: this.video,
-                onicecandidate: this.onIceCandidate
-            }
+                localVideo: this.screenVideo,
+                videoStream: screenStream,
+                onicecandidate: this.onScreenIceCandidate
+            };
 
-            this.webRtcPeer = WebRtcPeer.WebRtcPeerRecvonly(options, (error) => {
+            this.screenWebRtcPeer = WebRtcPeer.WebRtcPeerSendonly(options, (error) => {
                 if (error) {
                     return this.onError(error);
                 }
-                this.webRtcPeer.generateOffer(this.onOfferViewer);
+                console.log('Created presenter screen endpoint');
+                this.screenWebRtcPeer?.generateOffer(this.onOfferScreenPresenter);
+            });
+        }
+        if (!this.webcamWebRtcPeer) {
+            const webcamStream: MediaStream = await navigator.mediaDevices.getUserMedia({ video: true });
+
+            const options = {
+                localVideo: this.webcamVideo,
+                videoStream: webcamStream,
+                onicecandidate: this.onWebcamIceCandidate
+            };
+
+            this.webcamWebRtcPeer = WebRtcPeer.WebRtcPeerSendonly(options, (error) => {
+                if (error) {
+                    return this.onError(error);
+                }
+                console.log('Created presenter webcam endpoint');
+                this.webcamWebRtcPeer?.generateOffer(this.onOfferWebcamPresenter);
             });
         }
     }
 
-    onOfferViewer(error: any, offerSdp: any) {
-        if (error) return this.onError(error)
+    viewer(): void {
+        if (!this.screenWebRtcPeer) {
+            const options = {
+                remoteVideo: this.screenVideo,
+                onicecandidate: this.onScreenIceCandidate
+            };
 
-        const message = {
-            id: 'viewer',
-            sdpOffer: offerSdp
+            this.screenWebRtcPeer = WebRtcPeer.WebRtcPeerRecvonly(options, (error) => {
+                if (error) {
+                    return this.onError(error);
+                }
+                console.log('Created viewer screen endpoint');
+                this.screenWebRtcPeer?.generateOffer(this.onOfferScreenViewer);
+            });
         }
-        this.sendMessage(message);
+        if (!this.webcamWebRtcPeer) {
+            const options = {
+                remoteVideo: this.webcamVideo,
+                onicecandidate: this.onWebcamIceCandidate
+            };
+
+            this.webcamWebRtcPeer = WebRtcPeer.WebRtcPeerRecvonly(options, (error) => {
+                if (error) {
+                    return this.onError(error);
+                }
+                console.log('Created viewer webcam endpoint');
+                this.webcamWebRtcPeer?.generateOffer(this.onOfferWebcamViewer);
+            });
+        }
     }
 
-    onIceCandidate(candidate: any) {
-        console.log('Local candidate' + JSON.stringify(candidate));
+    processSdpResponse(message: any): void {
+        if (message.response != 'accepted') {
+            const errorMsg = message.message ? message.message : 'Unknow error';
+            console.warn('Call not accepted for the following reason: ' + errorMsg);
+            this.dispose();
+        } else {
+            console.log('Process SDP response');
+            (message.type === 'screen' ?
+                this.screenWebRtcPeer : this.webcamWebRtcPeer)?.processAnswer(message.sdpAnswer);
+        }
+    }
 
-        const message = {
+    _onOffer(error: any, id: 'presenter' | 'viewer', type: 'screen' | 'webcam', sdpOffer: string): void {
+        if (error) return this.onError(error);
+        console.log(`On offer: ${id}, ${type}`);
+        this.sendMessage({ id, type, sdpOffer });
+    }
+    onOfferScreenPresenter(error: any, sdpOffer: string): void {
+        this._onOffer(error, 'presenter', 'screen', sdpOffer);
+    }
+    onOfferWebcamPresenter(error: any, sdpOffer: string): void {
+        this._onOffer(error, 'presenter', 'webcam', sdpOffer);
+    }
+    onOfferScreenViewer(error: any, sdpOffer: string): void {
+        this._onOffer(error, 'viewer', 'screen', sdpOffer);
+    }
+    onOfferWebcamViewer(error: any, sdpOffer: string): void {
+        this._onOffer(error, 'viewer', 'webcam', sdpOffer);
+    }
+
+    _onIceCandidate(type: 'screen' | 'webcam', candidate: any): void {
+        console.log('Local candidate: ' + type + ' ' + JSON.stringify(candidate));
+
+        this.sendMessage({
             id: 'onIceCandidate',
-            candidate: candidate
-        }
-        this.sendMessage(message);
+            type, candidate
+        });
+    }
+    onScreenIceCandidate(candidate: any): void {
+        this._onIceCandidate('screen', candidate);
+    }
+    onWebcamIceCandidate(candidate: any): void {
+        this._onIceCandidate('webcam', candidate);
     }
 
-    stop() {
-        if (this.webRtcPeer) {
-            var message = {
-                    id: 'stop'
-            }
-            this.sendMessage(message);
+    stop(): void {
+        if (this.screenWebRtcPeer || this.webcamWebRtcPeer) {
+            this.sendMessage({ id: 'stop' });
             this.dispose();
         }
     }
 
-    dispose() {
-        if (this.webRtcPeer) {
-            this.webRtcPeer.dispose();
-            this.webRtcPeer = null;
+    dispose(): void {
+        if (this.screenWebRtcPeer) {
+            this.screenWebRtcPeer.dispose();
+            this.screenWebRtcPeer = null;
+        }
+        if (this.webcamWebRtcPeer) {
+            this.webcamWebRtcPeer.dispose();
+            this.webcamWebRtcPeer = null;
         }
     }
 
-    sendMessage(message: any) {
+    sendMessage(message: any): void {
         const jsonMessage = JSON.stringify(message);
         console.log('Sending message: ' + jsonMessage);
         this.ws?.send(jsonMessage);
@@ -181,7 +219,8 @@ export default class Stream extends React.Component {
                         <button id='terminate' onClick={this.stop}>Stop</button>
                     </div>
 
-                    <video id='Stream-video' autoPlay={true}></video>
+                    <video id='Stream-screen_video' autoPlay={true}></video>
+                    <video id='Stream-webcam_video' autoPlay={true}></video>
 
                 </div>
             </div>
