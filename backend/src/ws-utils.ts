@@ -1,4 +1,4 @@
-import kurento, { MediaPipeline, WebRtcEndpoint } from 'kurento-client';
+import kurento, {MediaPipeline, WebRtcEndpoint} from 'kurento-client';
 import ws from 'ws';
 import { wsUri } from './config/constants';
 
@@ -27,7 +27,7 @@ export function nextUniqueId(): string {
 	return idCounter.toString();
 }
 
-export function stop(sessionId: string): void {
+export async function stop(sessionId: string): Promise<void> {
 	if (presenter !== null && presenter.id === sessionId) {
 		for (const viewer of viewers.values()) {
 			if (viewer?.ws) {
@@ -43,7 +43,7 @@ export function stop(sessionId: string): void {
 	} else {
 		const viewer: Viewer | undefined = viewers.get(sessionId);
 		if (viewer) {
-			viewer.webRtcEndpoint.release();
+			await viewer.webRtcEndpoint.release();
 			viewers.delete(sessionId);
 		}
 	}
@@ -57,12 +57,12 @@ export function stop(sessionId: string): void {
     }
 }
 
-export function startPresenter(sessionId: string, ws: ws, sdpOffer: string): Promise<string | undefined> {
+export async function startPresenter(sessionId: string, ws: ws, sdpOffer: string): Promise<string> {
 	clearCandidatesQueue(sessionId);
 
 	if (presenter !== null) {
-		stop(sessionId);
-		return Promise.reject(presenterExistsMessage);
+		await stop(sessionId);
+		throw presenterExistsMessage;
 	}
 
 	presenter = {
@@ -70,142 +70,97 @@ export function startPresenter(sessionId: string, ws: ws, sdpOffer: string): Pro
 		pipeline: null,
 		webRtcEndpoint: null
 	};
-	return (kurentoClient ? Promise.resolve(kurentoClient) : kurento(wsUri))
-		.then((client: kurento.ClientInstance) => {
-			if (kurentoClient === null) {
-				kurentoClient = client;
-			}
-			return kurentoClient.create('MediaPipeline');
-		})
-		.then((pipeline: MediaPipeline) => {
-			if (presenter) {
-				presenter.pipeline = pipeline;
-				return presenter.pipeline.create('WebRtcEndpoint');
-			} else {
-				throw noPresenterMessage;
-			}
-		})
-		.then((webRtcEndpoint: WebRtcEndpoint) => {
-			if (presenter) {
-				presenter.webRtcEndpoint = webRtcEndpoint;
-			} else {
-				throw noPresenterMessage;
-			}
 
-			const candidatesQueueItem: RTCIceCandidate[] | undefined = candidatesQueue.get(sessionId);
-			if (candidatesQueueItem) {
-				while(candidatesQueueItem && candidatesQueueItem.length) {
-					const candidate: RTCIceCandidate | undefined = candidatesQueueItem.shift();
-					if (candidate) {
-						presenter.webRtcEndpoint.addIceCandidate(candidate);
-					}
-				}
+	if (!kurentoClient) {
+		kurentoClient = await kurento(wsUri);
+	}
+	presenter.pipeline = await kurentoClient.create('MediaPipeline');
+	presenter.webRtcEndpoint = await presenter.pipeline.create('WebRtcEndpoint');
+
+	const candidatesQueueItem: RTCIceCandidate[] | undefined = candidatesQueue.get(sessionId);
+	if (candidatesQueueItem) {
+		while(candidatesQueueItem && candidatesQueueItem.length) {
+			const candidate: RTCIceCandidate | undefined = candidatesQueueItem.shift();
+			if (candidate) {
+				await presenter.webRtcEndpoint.addIceCandidate(candidate);
 			}
-
-			presenter.webRtcEndpoint.on('IceCandidateFound', (
-					event: kurento.Event<'IceCandidateFound', {candidate: kurento.IceCandidate}>
-				) => {
-					const candidate: RTCIceCandidate =
-						kurento.getComplexType('IceCandidate')(event.candidate);
-					ws.send(JSON.stringify({
-						id: 'iceCandidate',
-						candidate: candidate
-					}));
-				}
-			);
-
-			return webRtcEndpoint.processOffer(sdpOffer);
-		})
-		.then((sdpAnswer: string) => {
-			if (presenter && presenter.webRtcEndpoint) {
-				return presenter.webRtcEndpoint.gatherCandidates().then(() => sdpAnswer);
-			} else {
-				throw noPresenterMessage;
-			}
-		})
-		.catch((error: any) => {
-			console.log('ERR: startPresenter' + error);
-			stop(sessionId);
-			throw error;
-		});
-}
-
-export function startViewer(sessionId: string, ws: any, sdpOffer: any) {
-	clearCandidatesQueue(sessionId);
-
-	if (presenter === null || !presenter.pipeline) {
-		stop(sessionId);
-		return Promise.reject(noPresenterMessage);
+		}
 	}
 
-	return presenter.pipeline.create('WebRtcEndpoint')
-		.then((webRtcEndpoint: WebRtcEndpoint) => {
-			viewers.set(sessionId, { webRtcEndpoint, ws });
-	
-			if (presenter === null) {
-				throw noPresenterMessage;
-			}
+	presenter.webRtcEndpoint.on('IceCandidateFound', (
+		event: kurento.Event<'IceCandidateFound', {candidate: kurento.IceCandidate}>
+		) => {
+			const candidate: RTCIceCandidate =
+				kurento.getComplexType('IceCandidate')(event.candidate);
+			ws.send(JSON.stringify({
+				id: 'iceCandidate',
+				candidate: candidate
+			}));
+		}
+	);
 
-			const candidatesQueueItem: RTCIceCandidate[] | undefined = candidatesQueue.get(sessionId);
-			if (candidatesQueueItem) {
-				while(candidatesQueueItem.length) {
-					const candidate: RTCIceCandidate | undefined = candidatesQueueItem.shift();
-					if (candidate) {
-						webRtcEndpoint.addIceCandidate(candidate);
-					}
-				}
-			}
-
-			webRtcEndpoint.on('IceCandidateFound', (
-					event: kurento.Event<'IceCandidateFound', {candidate: kurento.IceCandidate}>
-				) => {
-					const candidate: RTCIceCandidate =
-						kurento.getComplexType('IceCandidate')(event.candidate);
-					ws.send(JSON.stringify({
-						id: 'iceCandidate',
-						candidate: candidate
-					}));
-				}
-			);
-
-			return webRtcEndpoint.processOffer(sdpOffer).then((sdpAnswer: string) => { return { sdpAnswer, viewerWebRtcEndpoint: webRtcEndpoint } });
-		})
-		.then(({ sdpAnswer, viewerWebRtcEndpoint }: { sdpAnswer: string, viewerWebRtcEndpoint: WebRtcEndpoint }) => {
-			if (presenter) {
-				return presenter?.webRtcEndpoint?.connect(viewerWebRtcEndpoint)
-					.then(() => {
-						return viewerWebRtcEndpoint.gatherCandidates();
-					})
-					.then(() => sdpAnswer);
-			} else {
-				throw noPresenterMessage;
-			}
-		})
-		.catch((error: any) => {
-			console.log('ERR: startViewer' + error);
-			stop(sessionId);
-			throw error;
-		});
+	const sdpAnswer: string = await presenter.webRtcEndpoint.processOffer(sdpOffer);
+	await presenter.webRtcEndpoint.gatherCandidates();
+	return sdpAnswer;
 }
 
-export function clearCandidatesQueue(sessionId: string): void {
+export async function startViewer(sessionId: string, ws: any, sdpOffer: string): Promise<string> {
+	clearCandidatesQueue(sessionId);
+
+	if (presenter === null || !presenter.pipeline || !presenter.webRtcEndpoint) {
+		await stop(sessionId);
+		throw noPresenterMessage;
+	}
+
+	const viewerWebRtcEndpoint = await presenter.pipeline.create('WebRtcEndpoint');
+	viewers.set(sessionId, { webRtcEndpoint: viewerWebRtcEndpoint, ws });
+
+	const candidatesQueueItem: RTCIceCandidate[] | undefined = candidatesQueue.get(sessionId);
+	if (candidatesQueueItem) {
+		while(candidatesQueueItem.length) {
+			const candidate: RTCIceCandidate | undefined = candidatesQueueItem.shift();
+			if (candidate) {
+				await viewerWebRtcEndpoint.addIceCandidate(candidate);
+			}
+		}
+	}
+
+	viewerWebRtcEndpoint.on('IceCandidateFound', (
+		event: kurento.Event<'IceCandidateFound', {candidate: kurento.IceCandidate}>
+		) => {
+			const candidate: RTCIceCandidate =
+				kurento.getComplexType('IceCandidate')(event.candidate);
+			ws.send(JSON.stringify({
+				id: 'iceCandidate',
+				candidate: candidate
+			}));
+		}
+	);
+
+	const sdpAnswer: string = await viewerWebRtcEndpoint.processOffer(sdpOffer);
+	await presenter.webRtcEndpoint.connect(viewerWebRtcEndpoint);
+	await viewerWebRtcEndpoint.gatherCandidates();
+	return sdpAnswer;
+}
+
+function clearCandidatesQueue(sessionId: string): void {
 	if (candidatesQueue.has(sessionId)) {
 		candidatesQueue.delete(sessionId);
 	}
 }
 
-export function onIceCandidate(sessionId: string, _candidate: RTCIceCandidate): void {
+export async function onIceCandidate(sessionId: string, _candidate: RTCIceCandidate): Promise<void> {
     const candidate: RTCIceCandidate = kurento.getComplexType('IceCandidate')(_candidate);
 
     if (presenter && presenter.id === sessionId && presenter.webRtcEndpoint) {
         console.info('Sending presenter candidate');
-        presenter.webRtcEndpoint.addIceCandidate(candidate);
+        await presenter.webRtcEndpoint.addIceCandidate(candidate);
     }
     else {
 		const viewer: Viewer | undefined = viewers.get(sessionId);
 		if (viewer && viewer.webRtcEndpoint) {
 			console.info('Sending viewer candidate');
-			viewer.webRtcEndpoint.addIceCandidate(candidate);
+			await viewer.webRtcEndpoint.addIceCandidate(candidate);
 		}
 		else {
 			console.info('Queueing candidate');

@@ -1,5 +1,5 @@
 import React from 'react';
-import './Stream.css';
+import './StreamViewer.css';
 import { WebRtcPeer } from 'kurento-utils';
 import NavBar from '../NavBar/NavBar';
 
