@@ -1,0 +1,35 @@
+.kek {
+    width: 100%;
+}
+
+.StreamPresenter-component {
+    height: 100%;
+    margin: 0;
+}
+
+.StreamPresenter-control_buttons_group {
+    margin: 0 auto;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+button {
+    margin: 1rem;
+}
+
+#StreamPresenter-screen_video {
+    width: 75vw;
+    height: 80vh;
+    border: 1px solid grey;
+    object-fit: cover
+}
+
+#StreamPresenter-webcam_video {
+    width: 20vw;
+    height: 35vh;
+    border: 1px solid grey;
+    border-left: none;
+    vertical-align: top;
+}

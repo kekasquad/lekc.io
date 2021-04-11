@@ -27,71 +27,77 @@ const wss: ws.Server = new ws.Server({
     path: '/one2many'
 }, () => { console.log('WS started') });
 
-wss.on('connection', function(ws: ws) {
+wss.on('connection', async function(ws: ws) {
 
     const sessionId: string = nextUniqueId();
     console.log('Connection received with sessionId ' + sessionId);
  
-    ws.on('error', function(error: Error) {
+    ws.on('error', async function(error: Error) {
         console.log('Connection ' + sessionId + ' error' + error);
-        stop(sessionId);
+        await stop(sessionId);
     });
  
-    ws.on('close', function() {
+    ws.on('close', async function() {
         console.log('Connection ' + sessionId + ' closed');
-        stop(sessionId);
+        await stop(sessionId);
     });
  
-    ws.on('message', function(_message: string) {
+    ws.on('message', async function(_message: string) {
         const message = JSON.parse(_message);
         console.log('Connection ' + sessionId + ' received message ', message);
 
         switch (message.id) {
             case 'presenter':
-                startPresenter(sessionId, ws, message.sdpOffer)
-                    .then((sdpAnswer: string | undefined) => {
-                        if (!sdpAnswer) {
-                            throw 'sdpAnswer is undefined';
-                        }
-                        ws.send(JSON.stringify({
-                            id: 'presenterResponse',
-                            response: 'accepted',
-                            sdpAnswer: sdpAnswer
-                        }));
-                    })
-                    .catch((error: string) => {
-                        ws.send(JSON.stringify({
-                            id: 'presenterResponse',
-                            response: 'rejected',
-                            message: error
-                        }));
-                    });
-                break;
-    
+                try {
+                    const sdpAnswer: string = await startPresenter(sessionId, ws, message.type, message.sdpOffer);
+                    ws.send(JSON.stringify({
+                        id: 'sdpResponse',
+                        type: message.type,
+                        response: 'accepted',
+                        sdpAnswer: sdpAnswer
+                    }));
+                    break;
+                }
+                catch (error) {
+                    console.log(error);
+                    await stop(sessionId);
+                    ws.send(JSON.stringify({
+                        id: 'sdpResponse',
+                        type: message.type,
+                        response: 'rejected',
+                        message: error
+                    }));
+                    break;
+                }
             case 'viewer':
-                startViewer(sessionId, ws, message.sdpOffer)
-                    .then((sdpAnswer: string | undefined) => {
-                        ws.send(JSON.stringify({
-                            id: 'viewerResponse',
-                            response: 'accepted',
-                            sdpAnswer: sdpAnswer
-                        }));
-                    })
-                    .catch((error: any) => {
-                        ws.send(JSON.stringify({
-                            id: 'viewerResponse',
-                            response: 'rejected',
-                            message: error
-                        }));
-                    })
-                break;
+                try {
+                    const sdpAnswer: string = await startViewer(sessionId, ws, message.type, message.sdpOffer);
+                    ws.send(JSON.stringify({
+                        id: 'sdpResponse',
+                        type: message.type,
+                        response: 'accepted',
+                        sdpAnswer: sdpAnswer
+                    }));
+                    break;
+                }
+                catch (error) {
+                    console.log(error);
+                    await stop(sessionId);
+                    ws.send(JSON.stringify({
+                        id: 'sdpResponse',
+                        type: message.type,
+                        response: 'rejected',
+                        message: error
+                    }));
+                    break;
+                }
     
             case 'stop':
-                stop(sessionId);
+                await stop(sessionId);
                 break;
     
             case 'onIceCandidate':
-                onIceCandidate(sessionId, message.candidate);
+                await onIceCandidate(sessionId, message.type, message.candidate);
                 break;
     
             default:
