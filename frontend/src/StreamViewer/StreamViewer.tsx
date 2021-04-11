@@ -1,7 +1,9 @@
 import React from 'react';
 import './StreamViewer.css';
 import NavBar from '../NavBar/NavBar';
-import Stream from "../lib/stream";
+import Stream from '../lib/stream';
+import streamScreenPlaceholder from '../assets/stream-screen-placeholder.png';
+import streamWebcamPlaceholder from '../assets/stream-webcam-placeholder.png';
 
 interface IProps {
     [key: string]: any
@@ -72,8 +74,8 @@ export default class StreamViewer extends React.Component<IProps, IState> {
             <div className="kek">
                 <NavBar currentItem={2}/>
                 <div className="StreamViewer-component">
-                    <video id='StreamViewer-screen_video' autoPlay={true}></video>
-                    <video id='StreamViewer-webcam_video' autoPlay={true}></video>
+                    <video id='StreamViewer-screen_video' autoPlay={true} poster={streamScreenPlaceholder}></video>
+                    <video id='StreamViewer-webcam_video' autoPlay={true} poster={streamWebcamPlaceholder}></video>
 
                     <div className='StreamViewer-control_buttons_group'>
                         {

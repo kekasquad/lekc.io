@@ -21,11 +21,14 @@ button {
 }
 
 #StreamViewer-screen_video {
+    width: 75vw;
     height: 80vh;
     border: 1px solid grey;
+    object-fit: cover;
 }
 
 #StreamViewer-webcam_video {
+    width: 20vw;
     height: 35vh;
     border: 1px solid grey;
     border-left: none;

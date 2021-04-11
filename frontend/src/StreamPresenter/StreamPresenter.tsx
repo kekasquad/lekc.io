@@ -1,7 +1,9 @@
 import React from 'react';
 import './StreamPresenter.css';
 import NavBar from '../NavBar/NavBar';
-import Stream from "../lib/stream";
+import Stream from '../lib/stream';
+import streamScreenPlaceholder from '../assets/stream-screen-placeholder.png';
+import streamWebcamPlaceholder from '../assets/stream-webcam-placeholder.png';
 
 interface IProps {
     [key: string]: any
@@ -97,8 +99,8 @@ export default class StreamPresenter extends React.Component<IProps, IState> {
             <div className="kek">
                 <NavBar currentItem={1}/>
                 <div className="StreamPresenter-component">
-                    <video id='StreamPresenter-screen_video' autoPlay={true}></video>
-                    <video id='StreamPresenter-webcam_video' autoPlay={true}></video>
+                    <video id='StreamPresenter-screen_video' autoPlay={true} poster={streamScreenPlaceholder}></video>
+                    <video id='StreamPresenter-webcam_video' autoPlay={true} poster={streamWebcamPlaceholder}></video>
 
                     <div className='StreamPresenter-control_buttons_group'>
                         {
