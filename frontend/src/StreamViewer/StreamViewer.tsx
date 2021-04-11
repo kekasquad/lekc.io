@@ -32,6 +32,11 @@ export default class Stream extends React.Component {
         this.stop = this.stop.bind(this);
         this.dispose = this.dispose.bind(this);
         this.sendMessage = this.sendMessage.bind(this);
+
+        this.disableWebcam = this.disableWebcam.bind(this);
+        this.enableWebcam = this.enableWebcam.bind(this);
+        this.disableScreen = this.disableScreen.bind(this);
+        this.enableScreen = this.enableScreen.bind(this);
     }
 
     componentDidMount() {
@@ -208,6 +213,24 @@ export default class Stream extends React.Component {
         this.ws?.send(jsonMessage);
     }
 
+    disableWebcam(): void {
+        this.webcamWebRtcPeer?.getLocalStream()?.getVideoTracks()
+            .map((track: MediaStreamTrack) => track.enabled = false);
+    }
+    enableWebcam(): void {
+        this.webcamWebRtcPeer?.getLocalStream()?.getVideoTracks()
+            .map((track: MediaStreamTrack) => track.enabled = true);
+    }
+
+    disableScreen(): void {
+        this.screenWebRtcPeer?.getLocalStream()?.getVideoTracks()
+            .map((track: MediaStreamTrack) => track.enabled = false);
+    }
+    enableScreen(): void {
+        this.screenWebRtcPeer?.getLocalStream()?.getVideoTracks()
+            .map((track: MediaStreamTrack) => track.enabled = true);
+    }
+
     render(): JSX.Element {
         return (
             <div className="kek">
@@ -217,6 +240,10 @@ export default class Stream extends React.Component {
                         <button id='call' onClick={this.presenter}>Presenter</button>
                         <button id='viewer' onClick={this.viewer}>Viewer</button>
                         <button id='terminate' onClick={this.stop}>Stop</button>
+                        <button onClick={this.disableWebcam}>Disable Webcam</button>
+                        <button onClick={this.enableWebcam}>Enable Webcam</button>
+                        <button onClick={this.disableScreen}>Disable Screen</button>
+                        <button onClick={this.enableScreen}>Enable Screen</button>
                     </div>
 
                     <video id='Stream-screen_video' autoPlay={true}></video>
