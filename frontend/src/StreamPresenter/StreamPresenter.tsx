@@ -1,6 +1,5 @@
 import React from 'react';
-import './StreamViewer.css';
-import { WebRtcPeer } from 'kurento-utils';
+import './StreamPresenter.css';
 import NavBar from '../NavBar/NavBar';
 import Stream from "../lib/stream";
 
@@ -13,10 +12,11 @@ interface IState {
     ws: WebSocket | null;
     screenVideo: HTMLVideoElement | null;
     webcamVideo: HTMLVideoElement | null;
+    screenEnabled: boolean;
+    webcamEnabled: boolean;
 }
 
-export default class StreamViewer extends React.Component<IProps, IState> {
-
+export default class StreamPresenter extends React.Component<IProps, IState> {
 
     constructor(props: any) {
         super(props);
@@ -25,11 +25,15 @@ export default class StreamViewer extends React.Component<IProps, IState> {
             stream: null,
             ws: null,
             screenVideo: null,
-            webcamVideo: null
+            webcamVideo: null,
+            screenEnabled: true,
+            webcamEnabled: true
         };
 
-        this.startViewer = this.startViewer.bind(this);
+        this.startPresenter = this.startPresenter.bind(this);
         this.stop = this.stop.bind(this);
+        this.changeWebcamMode = this.changeWebcamMode.bind(this);
+        this.changeScreenMode = this.changeScreenMode.bind(this);
     }
 
     componentWillUnmount() {
@@ -37,9 +41,9 @@ export default class StreamViewer extends React.Component<IProps, IState> {
         this.state.stream?.stop();
     }
 
-    async startViewer(): Promise<void> {
+    async startPresenter(): Promise<void> {
         if (this.state.stream) {
-            await this.state.stream.startViewer();
+            await this.state.stream.startPresenter();
         } else {
             const ws = this.state.ws || new WebSocket(`wss://localhost:4000/one2many`);
             const screenVideo: HTMLVideoElement = document.querySelector('#Stream-screen_video') as HTMLVideoElement;
@@ -49,11 +53,11 @@ export default class StreamViewer extends React.Component<IProps, IState> {
                 this.setState(
                     { ws, stream: new Stream(ws, screenVideo, webcamVideo), screenVideo, webcamVideo },
                     async () => {
-                        await this.state.stream?.startViewer()
+                        await this.state.stream?.startPresenter()
                     }
                 );
             } else {
-                console.error('Cannot load stream');
+                console.error('Cannot start stream');
             }
         }
     }
@@ -68,16 +72,46 @@ export default class StreamViewer extends React.Component<IProps, IState> {
         }
     }
 
+    changeWebcamMode(): void {
+        if (this.state.stream) {
+            this.state.stream.changeWebcamMode();
+            this.setState({ webcamEnabled: !this.state.webcamEnabled });
+        } else {
+            console.error('No active stream');
+        }
+    }
+
+    changeScreenMode(): void {
+        if (this.state.stream) {
+            this.state.stream.changeScreenMode();
+            this.setState({ screenEnabled: !this.state.screenEnabled });
+        } else {
+            console.error('No active stream');
+        }
+    }
+
     render(): JSX.Element {
         return (
             <div className="kek">
-                <NavBar currentItem={2}/>
+                <NavBar currentItem={1}/>
                 <div className="Stream-component">
                     <div className='Stream-control_buttons_group'>
                         {
                             this.state.stream ?
-                                <button onClick={ this.stop }>Stop watching</button> :
-                                <button onClick={ this.startViewer }>Start watching</button>
+                                <button onClick={ this.stop }>Stop presenting</button> :
+                                <button onClick={ this.startPresenter }>Start presenting</button>
+                        }
+                        {
+                            this.state.stream ?
+                            <button onClick={ this.changeWebcamMode }>
+                                { `${ this.state.webcamEnabled ? 'Disable' : 'Enable'} webcam` }
+                            </button> : ''
+                        }
+                        {
+                            this.state.stream ?
+                            <button onClick={ this.changeScreenMode }>
+                                { `${ this.state.screenEnabled ? 'Disable' : 'Enable' } screen sharing` }
+                            </button> : ''
                         }
                     </div>
 

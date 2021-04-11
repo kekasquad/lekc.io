@@ -1,0 +1,28 @@
+.kek {
+    width: 100%;
+}
+
+.Stream-component {
+    width: 100%;
+    height: 100vh;
+    margin: 0;
+    padding: 2rem;
+}
+
+.Stream-control_buttons_group {
+    margin: 0 auto;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+button {
+    margin: 1rem;
+}
+
+#Stream-video {
+    width: 80%;
+    min-height: 50%;
+    border: 1px solid grey;
+}

@@ -40,6 +40,11 @@
     background-color: #00000000;
 }
 
+.tab img {
+    width: 36px;
+    height: 36px;
+}
+
 .tab_active {
     background-color: var(--active-tab-blue);
     border-bottom:4px solid var(--dark-blue);
