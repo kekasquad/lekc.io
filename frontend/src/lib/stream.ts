@@ -6,12 +6,16 @@ export default class Stream {
 
     _screenEnabled: boolean = true;
     _webcamEnabled: boolean = true;
+    _audioEnabled: boolean = true;
 
     get screenEnabled(): boolean {
         return this._screenEnabled;
     }
     get webcamEnabled(): boolean {
         return this._webcamEnabled;
+    }
+    get audioEnabled(): boolean {
+        return this._audioEnabled;
     }
 
     constructor(
@@ -46,7 +50,7 @@ export default class Stream {
         console.log('HERE');
         if (!this.screenWebRtcPeer) {
             const mediaDevices = navigator.mediaDevices as any;
-            const screenStream = await mediaDevices.getDisplayMedia({ video: true, audio: false });
+            const screenStream = await mediaDevices.getDisplayMedia({ video: true });
             const options = {
                 localVideo: this.screenVideo,
                 videoStream: screenStream,
@@ -62,7 +66,7 @@ export default class Stream {
             });
         }
         if (!this.webcamWebRtcPeer) {
-            const webcamStream: MediaStream = await navigator.mediaDevices.getUserMedia({ video: true });
+            const webcamStream: MediaStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
 
             const options = {
                 localVideo: this.webcamVideo,
@@ -130,16 +134,22 @@ export default class Stream {
         }
     }
 
+    changeScreenMode(): void {
+        this.screenWebRtcPeer?.getLocalStream()?.getVideoTracks()
+            .map((track: MediaStreamTrack) => track.enabled = !this.screenEnabled);
+        this._screenEnabled = !this.screenEnabled;
+    }
+
     changeWebcamMode(): void {
         this.webcamWebRtcPeer?.getLocalStream()?.getVideoTracks()
             .map((track: MediaStreamTrack) => track.enabled = !this.webcamEnabled);
         this._webcamEnabled = !this.webcamEnabled;
     }
 
-    changeScreenMode(): void {
-        this.screenWebRtcPeer?.getLocalStream()?.getVideoTracks()
-            .map((track: MediaStreamTrack) => track.enabled = !this.screenEnabled);
-        this._screenEnabled = !this.screenEnabled;
+    changeAudioMode(): void {
+        this.webcamWebRtcPeer?.getLocalStream()?.getAudioTracks()
+            .map((track: MediaStreamTrack) => track.enabled = !this.audioEnabled);
+        this._audioEnabled = !this.audioEnabled;
     }
 
     private onError(error: any): void {

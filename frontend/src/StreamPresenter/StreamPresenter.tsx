@@ -6,6 +6,7 @@ import streamScreenPlaceholder from '../assets/stream-screen-placeholder.png';
 import streamWebcamPlaceholder from '../assets/stream-webcam-placeholder.png';
 import webcamTurnButton from '../assets/webcam-turn-button.png';
 import screenTurnButton from '../assets/screen-turn-button.png';
+import microTurnButton from '../assets/micro-turn-button.png';
 
 interface IProps {
     [key: string]: any
@@ -18,6 +19,7 @@ interface IState {
     webcamVideo: HTMLVideoElement | null;
     screenEnabled: boolean;
     webcamEnabled: boolean;
+    audioEnabled: boolean;
 }
 
 export default class StreamPresenter extends React.Component<IProps, IState> {
@@ -31,13 +33,15 @@ export default class StreamPresenter extends React.Component<IProps, IState> {
             screenVideo: null,
             webcamVideo: null,
             screenEnabled: true,
-            webcamEnabled: true
+            webcamEnabled: true,
+            audioEnabled: true
         };
 
         this.startPresenter = this.startPresenter.bind(this);
         this.stop = this.stop.bind(this);
         this.changeWebcamMode = this.changeWebcamMode.bind(this);
         this.changeScreenMode = this.changeScreenMode.bind(this);
+        this.changeAudioMode = this.changeAudioMode.bind(this);
     }
 
     componentWillUnmount() {
@@ -96,6 +100,15 @@ export default class StreamPresenter extends React.Component<IProps, IState> {
         }
     }
 
+    changeAudioMode(): void {
+        if (this.state.stream) {
+            this.state.stream.changeAudioMode();
+            this.setState({ audioEnabled: !this.state.audioEnabled });
+        } else {
+            console.error('No active stream');
+        }
+    }
+
     render(): JSX.Element {
         return (
             <div className="kek">
@@ -121,7 +134,14 @@ export default class StreamPresenter extends React.Component<IProps, IState> {
                             this.state.stream ?
                                 <button className={ `round_button ${this.state.screenEnabled ? 'green_button' : 'red_button'}` }
                                         onClick={ this.changeScreenMode }>
-                                    <img src={screenTurnButton} alt='Turn on/off webcam'/>
+                                    <img src={screenTurnButton} alt='Turn on/off screen sharing'/>
+                                </button> : ''
+                        }
+                        {
+                            this.state.stream ?
+                                <button className={ `round_button ${this.state.audioEnabled ? 'green_button' : 'red_button'}` }
+                                        onClick={ this.changeAudioMode }>
+                                    <img src={microTurnButton} alt='Turn on/off micro'/>
                                 </button> : ''
                         }
                     </div>
