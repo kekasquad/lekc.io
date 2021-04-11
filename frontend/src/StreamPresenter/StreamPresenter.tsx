@@ -4,6 +4,8 @@ import NavBar from '../NavBar/NavBar';
 import Stream from '../lib/stream';
 import streamScreenPlaceholder from '../assets/stream-screen-placeholder.png';
 import streamWebcamPlaceholder from '../assets/stream-webcam-placeholder.png';
+import webcamTurnButton from '../assets/webcam-turn-button.png';
+import screenTurnButton from '../assets/screen-turn-button.png';
 
 interface IProps {
     [key: string]: any
@@ -105,19 +107,21 @@ export default class StreamPresenter extends React.Component<IProps, IState> {
                     <div className='StreamPresenter-control_buttons_group'>
                         {
                             this.state.stream ?
-                                <button onClick={ this.stop }>Stop presenting</button> :
-                                <button onClick={ this.startPresenter }>Start presenting</button>
+                                <button className='common_button red_button' onClick={ this.stop }>Stop presenting</button> :
+                                <button className='common_button' onClick={ this.startPresenter }>Start presenting</button>
                         }
                         {
                             this.state.stream ?
-                                <button onClick={ this.changeWebcamMode }>
-                                    { `${ this.state.webcamEnabled ? 'Disable' : 'Enable'} webcam` }
+                                <button className={ `round_button ${this.state.webcamEnabled ? 'green_button' : 'red_button'}` }
+                                        onClick={ this.changeWebcamMode }>
+                                    <img src={webcamTurnButton} alt='Turn on/off webcam'/>
                                 </button> : ''
                         }
                         {
                             this.state.stream ?
-                                <button onClick={ this.changeScreenMode }>
-                                    { `${ this.state.screenEnabled ? 'Disable' : 'Enable' } screen sharing` }
+                                <button className={ `round_button ${this.state.screenEnabled ? 'green_button' : 'red_button'}` }
+                                        onClick={ this.changeScreenMode }>
+                                    <img src={screenTurnButton} alt='Turn on/off webcam'/>
                                 </button> : ''
                         }
                     </div>

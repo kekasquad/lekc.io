@@ -80,8 +80,8 @@ export default class StreamViewer extends React.Component<IProps, IState> {
                     <div className='StreamViewer-control_buttons_group'>
                         {
                             this.state.stream ?
-                                <button onClick={ this.stop }>Stop watching</button> :
-                                <button onClick={ this.startViewer }>Start watching</button>
+                                <button className='common_button red_button' onClick={ this.stop }>Stop watching</button> :
+                                <button className='common_button' onClick={ this.startViewer }>Start watching</button>
                         }
                     </div>
                 </div>

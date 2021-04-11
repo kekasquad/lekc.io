@@ -27,6 +27,38 @@ code {
   border: 0.5px solid var(--dark-blue-alpha);
 }
 
+.common_button:focus {
+  outline: none;
+}
+
+.red_button {
+  background-color: var(--light-red);
+}
+
+.green_button {
+  background-color: var(--light-green);
+}
+
+.round_button {
+  width: 55px;
+  height: 55px;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border: none;
+}
+
+.round_button img {
+  width: 33px;
+  height: 33px;
+  vertical-align: center;
+}
+
+.round_button:focus {
+  outline: none;
+}
+
 .form_error {
   color: var(--light-red);
   font-size: 0.7em;
