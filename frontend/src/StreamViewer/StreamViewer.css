@@ -2,14 +2,13 @@
     width: 100%;
 }
 
-.Stream-component {
+.StreamViewer-component {
+    height: 100%;
     width: 100%;
-    height: 100vh;
     margin: 0;
-    padding: 2rem;
 }
 
-.Stream-control_buttons_group {
+.StreamViewer-control_buttons_group {
     margin: 0 auto;
     width: 100%;
     display: flex;
@@ -21,8 +20,14 @@ button {
     margin: 1rem;
 }
 
-#Stream-video {
-    width: 80%;
-    min-height: 50%;
+#StreamViewer-screen_video {
+    height: 80vh;
     border: 1px solid grey;
+}
+
+#StreamViewer-webcam_video {
+    height: 35vh;
+    border: 1px solid grey;
+    border-left: none;
+    vertical-align: top;
 }

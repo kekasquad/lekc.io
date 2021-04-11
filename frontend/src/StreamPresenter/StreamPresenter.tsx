@@ -46,8 +46,10 @@ export default class StreamPresenter extends React.Component<IProps, IState> {
             await this.state.stream.startPresenter();
         } else {
             const ws = this.state.ws || new WebSocket(`wss://localhost:4000/one2many`);
-            const screenVideo: HTMLVideoElement = document.querySelector('#Stream-screen_video') as HTMLVideoElement;
-            const webcamVideo: HTMLVideoElement = document.querySelector('#Stream-webcam_video') as HTMLVideoElement;
+            const screenVideo: HTMLVideoElement =
+                document.querySelector('#StreamPresenter-screen_video') as HTMLVideoElement;
+            const webcamVideo: HTMLVideoElement =
+                document.querySelector('#StreamPresenter-webcam_video') as HTMLVideoElement;
 
             if (screenVideo && webcamVideo) {
                 this.setState(
@@ -94,8 +96,11 @@ export default class StreamPresenter extends React.Component<IProps, IState> {
         return (
             <div className="kek">
                 <NavBar currentItem={1}/>
-                <div className="Stream-component">
-                    <div className='Stream-control_buttons_group'>
+                <div className="StreamPresenter-component">
+                    <video id='StreamPresenter-screen_video' autoPlay={true}></video>
+                    <video id='StreamPresenter-webcam_video' autoPlay={true}></video>
+
+                    <div className='StreamPresenter-control_buttons_group'>
                         {
                             this.state.stream ?
                                 <button onClick={ this.stop }>Stop presenting</button> :
@@ -103,20 +108,17 @@ export default class StreamPresenter extends React.Component<IProps, IState> {
                         }
                         {
                             this.state.stream ?
-                            <button onClick={ this.changeWebcamMode }>
-                                { `${ this.state.webcamEnabled ? 'Disable' : 'Enable'} webcam` }
-                            </button> : ''
+                                <button onClick={ this.changeWebcamMode }>
+                                    { `${ this.state.webcamEnabled ? 'Disable' : 'Enable'} webcam` }
+                                </button> : ''
                         }
                         {
                             this.state.stream ?
-                            <button onClick={ this.changeScreenMode }>
-                                { `${ this.state.screenEnabled ? 'Disable' : 'Enable' } screen sharing` }
-                            </button> : ''
+                                <button onClick={ this.changeScreenMode }>
+                                    { `${ this.state.screenEnabled ? 'Disable' : 'Enable' } screen sharing` }
+                                </button> : ''
                         }
                     </div>
-
-                    <video id='Stream-screen_video' autoPlay={true}></video>
-                    <video id='Stream-webcam_video' autoPlay={true}></video>
 
                 </div>
             </div>

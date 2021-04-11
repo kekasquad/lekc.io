@@ -82,7 +82,9 @@ export default class NavBar extends React.Component<IProps, IState> {
     return (
       <nav className="navbar">
         <div className="brand_section">
-          Lekc.io
+          <Link to="/">
+            <h1>Lekc.io</h1>
+          </Link>
           <div className="tabs">
             <Link to="/search">
               <button className={ 'tab btn_icon' + (this.state.currentItem == SelectedTab.FIND ? ' tab_active' : '') } onClick={ () => this.changeTab(SelectedTab.FIND) }>
