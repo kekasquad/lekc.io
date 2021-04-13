@@ -1,10 +1,10 @@
 import React from 'react';
 import './App.css';
 import Auth from '../Auth/Auth';
-import NavBar from '../NavBar/NavBar';
 import Stream from '../Stream/Stream';
-import { Redirect, Route, Switch, withRouter } from 'react-router';
 import Search from '../Search/Search';
+import Profile from '../Profile/Profile';
+import { Redirect, Route, Switch, withRouter } from 'react-router';
 
 function App() {
   return (
@@ -17,7 +17,7 @@ function App() {
           <Stream />
         </Route>
         <Route path="/profile">
-          <NavBar currentItem={2}/>
+          <Profile/>
         </Route>
         <Route path="/login">
           <Auth/>

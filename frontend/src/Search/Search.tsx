@@ -114,9 +114,10 @@ export default class Search extends React.Component<IProps, IState> {
                     </div>
                 </div>
                 <div className="search_container_results">
-                    { this.state.isLoading === true ? this.loading() : 
-                        this.state.errorLoading !== undefined ? this.error() : 
-                        this.state.isInitial ? <div/> : this.streams() 
+                    { 
+                        this.state.isLoading === true ? this.loading() : 
+                            this.state.errorLoading !== undefined ? this.error() : 
+                            this.state.isInitial ? <div/> : this.streams() 
                     }
                 </div>
             </div>
