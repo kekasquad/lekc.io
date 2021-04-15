@@ -1,5 +1,5 @@
 import kurento, { MediaPipeline, WebRtcEndpoint } from 'kurento-client';
-import ws from 'ws';
+import { Socket } from 'socket.io';
 import { wsUri } from './config/constants';
 
 interface Presenter {
@@ -11,7 +11,7 @@ interface Presenter {
 }
 
 interface Viewer {
-    ws: ws;
+    socket: Socket;
 	screenWebRtcEndpoint: WebRtcEndpoint | null;
 	webcamWebRtcEndpoint: WebRtcEndpoint | null;
 }
@@ -34,20 +34,17 @@ export function nextUniqueId(): string {
 	return idCounter.toString();
 }
 
-export async function stop(sessionId: string, type?: 'screen' | 'webcam'): Promise<void> {
+export async function stop(sessionId: string): Promise<void> {
 	if (presenter !== null && presenter.id === sessionId) {
 		for (const viewer of viewers.values()) {
-			if (viewer?.ws) {
-				viewer.ws.send(JSON.stringify({
-					id: 'stopCommunication'
-				}));
+			if (viewer?.socket) {
+				viewer.socket.emit('streamStopped');
 			}
 		}
 		await presenter.screenPipeline?.release();
 		await presenter.webcamPipeline?.release();
 		presenter = null;
 		viewers.clear();
-
 	} else {
 		const viewer: Viewer | undefined = viewers.get(sessionId);
 		if (viewer) {
@@ -66,7 +63,7 @@ export async function stop(sessionId: string, type?: 'screen' | 'webcam'): Promi
     }
 }
 
-export async function startPresenter(sessionId: string, ws: ws, type: 'screen' | 'webcam', sdpOffer: string): Promise<string> {
+export async function startPresenter(sessionId: string, socket: Socket, type: 'screen' | 'webcam', sdpOffer: string): Promise<string> {
 	clearCandidatesQueue(sessionId);
 
 	if (type === 'screen') {
@@ -105,10 +102,7 @@ export async function startPresenter(sessionId: string, ws: ws, type: 'screen' |
 			) => {
 				const candidate: RTCIceCandidate =
 					kurento.getComplexType('IceCandidate')(event.candidate);
-				ws.send(JSON.stringify({
-					id: 'screenIceCandidate',
-					candidate: candidate
-				}));
+				socket.emit('screenIceCandidate', candidate);
 			}
 		);
 
@@ -151,10 +145,7 @@ export async function startPresenter(sessionId: string, ws: ws, type: 'screen' |
 			) => {
 				const candidate: RTCIceCandidate =
 					kurento.getComplexType('IceCandidate')(event.candidate);
-				ws.send(JSON.stringify({
-					id: 'webcamIceCandidate',
-					candidate: candidate
-				}));
+				socket.emit('webcamIceCandidate', candidate);
 			}
 		);
 
@@ -164,18 +155,16 @@ export async function startPresenter(sessionId: string, ws: ws, type: 'screen' |
 	}
 }
 
-export async function startViewer(sessionId: string, ws: any, type: 'screen' | 'webcam', sdpOffer: string): Promise<string> {
+export async function startViewer(sessionId: string, socket: Socket, type: 'screen' | 'webcam', sdpOffer: string): Promise<string> {
 	clearCandidatesQueue(sessionId);
 
 	if (presenter === null) {
-		console.log('HERE', presenter);
 		throw noPresenterMessage;
 	}
 
 	if (type === 'screen') {
 		if (!presenter.screenPipeline || !presenter.screenWebRtcEndpoint) {
-			console.log('OR HERE');
-			await stop(sessionId, 'screen');
+			await stop(sessionId);
 			throw noPresenterMessage;
 		}
 
@@ -188,7 +177,7 @@ export async function startViewer(sessionId: string, ws: any, type: 'screen' | '
 		if (viewer) {
 			viewer.screenWebRtcEndpoint = screenWebRtcEndpoint;
 		} else {
-			viewers.set(sessionId, { screenWebRtcEndpoint, webcamWebRtcEndpoint: null, ws });
+			viewers.set(sessionId, { screenWebRtcEndpoint, webcamWebRtcEndpoint: null, socket });
 		}
 
 		const candidatesQueueItem: RTCIceCandidate[] | undefined = screenCandidatesQueue.get(sessionId);
@@ -206,10 +195,7 @@ export async function startViewer(sessionId: string, ws: any, type: 'screen' | '
 			) => {
 				const candidate: RTCIceCandidate =
 					kurento.getComplexType('IceCandidate')(event.candidate);
-				ws.send(JSON.stringify({
-					id: 'screenIceCandidate',
-					candidate: candidate
-				}));
+				socket.emit('screenIceCandidate', candidate);
 			}
 		);
 
@@ -219,7 +205,7 @@ export async function startViewer(sessionId: string, ws: any, type: 'screen' | '
 		return sdpAnswer;
 	} else {
 		if (!presenter.webcamPipeline || !presenter.webcamWebRtcEndpoint) {
-			await stop(sessionId, 'webcam');
+			await stop(sessionId);
 			throw noPresenterMessage;
 		}
 
@@ -232,7 +218,7 @@ export async function startViewer(sessionId: string, ws: any, type: 'screen' | '
 		if (viewer) {
 			viewer.webcamWebRtcEndpoint = webcamWebRtcEndpoint;
 		} else {
-			viewers.set(sessionId, { webcamWebRtcEndpoint, screenWebRtcEndpoint: null, ws });
+			viewers.set(sessionId, { webcamWebRtcEndpoint, screenWebRtcEndpoint: null, socket });
 		}
 
 		const candidatesQueueItem: RTCIceCandidate[] | undefined = webcamCandidatesQueue.get(sessionId);
@@ -250,10 +236,7 @@ export async function startViewer(sessionId: string, ws: any, type: 'screen' | '
 			) => {
 				const candidate: RTCIceCandidate =
 					kurento.getComplexType('IceCandidate')(event.candidate);
-				ws.send(JSON.stringify({
-					id: 'webcamIceCandidate',
-					candidate: candidate
-				}));
+				socket.emit('webcamIceCandidate', candidate);
 			}
 		);
 
@@ -278,17 +261,17 @@ export async function onIceCandidate(
 
     if (type === 'screen') {
 		if (presenter && presenter.id === sessionId && presenter.screenWebRtcEndpoint) {
-			console.info('Sending presenter candidate');
+			console.log('Sending presenter candidate');
 			await presenter.screenWebRtcEndpoint?.addIceCandidate(candidate);
 		}
 		else {
 			const viewer: Viewer | undefined = viewers.get(sessionId);
 			if (viewer && viewer.screenWebRtcEndpoint) {
-				console.info('Sending viewer candidate');
+				console.log('Sending viewer candidate');
 				await viewer.screenWebRtcEndpoint.addIceCandidate(candidate);
 			}
 			else {
-				console.info('Queueing candidate');
+				console.log('Queueing candidate');
 				if (!screenCandidatesQueue.has(sessionId)) {
 					screenCandidatesQueue.set(sessionId, [candidate]);
 				} else {

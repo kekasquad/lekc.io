@@ -2,115 +2,76 @@ import express from 'express';
 import fs from 'fs';
 import path from 'path';
 import https from 'https';
-import ws from 'ws';
 import mongoose from 'mongoose';
+import cors from 'cors';
+import { Server, Socket } from 'socket.io';
 import { certDir, PORT, mongoUri } from './config/constants';
 import { stop, nextUniqueId, startPresenter, startViewer, onIceCandidate } from './ws-utils';
 
 const options = {
-  cert: fs.readFileSync(path.resolve(certDir, 'cert.pem')),
-  key:  fs.readFileSync(path.resolve(certDir, 'key.pem')),
+    cert: fs.readFileSync(path.resolve(certDir, 'cert.pem')),
+    key:  fs.readFileSync(path.resolve(certDir, 'key.pem'))
 };
 
 mongoose.connect(mongoUri, { useNewUrlParser: true, useUnifiedTopology: true }).then(() => {
     const app: express.Express = express();
+    app.use(cors());
     app.use(express.json());
 
     app.get('/', (req, res) => {
         res.send('Hello World!')
     });
 
-    const server: https.Server = https.createServer(options, app).listen(PORT, (): void => {
+    const server: https.Server = https.createServer(options, app);
+
+    const wsServer: Server = new Server(server, {
+        cors: {
+            origin: '*'
+        }
+    });
+
+    wsServer.on('connection', async function(socket: Socket) {
+
+        const sessionId: string = nextUniqueId();
+        console.log(`Connection received with sessionId: ${sessionId}`);
+
+        socket.on('disconnect', async function(reason: string) {
+            console.log(`Connection ${sessionId} disconnected with reason: ${reason}`);
+            await stop(sessionId);
+        });
+
+        socket.on('presenter', async (type: 'screen' | 'webcam', sdpOffer: string) => {
+            console.log(`Connection ${sessionId} received presenter's SDP offer with type ${type}`);
+            try {
+                const sdpAnswer: string = await startPresenter(sessionId, socket, type, sdpOffer);
+                socket.emit('sdpResponse', 'accepted', type, sdpAnswer);
+            } catch (error) {
+                console.log(`Presenter's SDP response error: ${error}`);
+                await stop(sessionId);
+                socket.emit('sdpResponse', 'rejected', type, error);
+            }
+        });
+
+        socket.on('viewer', async (type: 'screen' | 'webcam', sdpOffer: string) => {
+            console.log(`Connection ${sessionId} received viewer's SDP offer with type ${type}`);
+            try {
+                const sdpAnswer: string = await startViewer(sessionId, socket, type, sdpOffer);
+                socket.emit('sdpResponse', 'accepted', type, sdpAnswer);
+            } catch (error) {
+                console.log(`Viewer's SDP response error: ${error}`);
+                await stop(sessionId);
+                socket.emit('sdpResponse', 'rejected', type, error);
+            }
+        });
+
+        socket.on('iceCandidate', async (type: 'screen' | 'webcam', candidate: RTCIceCandidate) => {
+            await onIceCandidate(sessionId, type, candidate);
+        });
+    });
+    server.listen(PORT, (): void => {
         console.log(`Server is listening on port ${PORT}`);
     });
 
-    const wss: ws.Server = new ws.Server({
-        server: server,
-        path: '/one2many'
-    }, () => { console.log('WS started') });
-
-    wss.on('connection', async function(ws: ws) {
-
-        const sessionId: string = nextUniqueId();
-        console.log('Connection received with sessionId ' + sessionId);
-
-        ws.on('error', async function(error: Error) {
-            console.log('Connection ' + sessionId + ' error' + error);
-            await stop(sessionId);
-        });
-
-        ws.on('close', async function() {
-            console.log('Connection ' + sessionId + ' closed');
-            await stop(sessionId);
-        });
-
-        ws.on('message', async function(_message: string) {
-            const message = JSON.parse(_message);
-            console.log('Connection ' + sessionId + ' received message ', message);
-
-            switch (message.id) {
-                case 'presenter':
-                    try {
-                        const sdpAnswer: string = await startPresenter(sessionId, ws, message.type, message.sdpOffer);
-                        ws.send(JSON.stringify({
-                            id: 'sdpResponse',
-                            type: message.type,
-                            response: 'accepted',
-                            sdpAnswer: sdpAnswer
-                        }));
-                        break;
-                    }
-                    catch (error) {
-                        console.log(error);
-                        await stop(sessionId);
-                        ws.send(JSON.stringify({
-                            id: 'sdpResponse',
-                            type: message.type,
-                            response: 'rejected',
-                            message: error
-                        }));
-                        break;
-                    }
-                case 'viewer':
-                    try {
-                        const sdpAnswer: string = await startViewer(sessionId, ws, message.type, message.sdpOffer);
-                        ws.send(JSON.stringify({
-                            id: 'sdpResponse',
-                            type: message.type,
-                            response: 'accepted',
-                            sdpAnswer: sdpAnswer
-                        }));
-                        break;
-                    }
-                    catch (error) {
-                        console.log(error);
-                        await stop(sessionId);
-                        ws.send(JSON.stringify({
-                            id: 'sdpResponse',
-                            type: message.type,
-                            response: 'rejected',
-                            message: error
-                        }));
-                        break;
-                    }
-
-                case 'stop':
-                    await stop(sessionId);
-                    break;
-
-                case 'onIceCandidate':
-                    await onIceCandidate(sessionId, message.type, message.candidate);
-                    break;
-
-                default:
-                    ws.send(JSON.stringify({
-                        id: 'error',
-                        message: 'Invalid message ' + message
-                    }));
-                    break;
-            }
-        });
-    });
 }).catch(() => {
     console.log(`Unable to connect to MongoDB on the address ${mongoUri}`);
 })
