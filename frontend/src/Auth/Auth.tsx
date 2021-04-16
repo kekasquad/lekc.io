@@ -4,6 +4,7 @@ import { FORM_ERROR_MESSAGES } from '../constants';
 
 interface IProps {
     loginMode?: boolean;
+    setToken?: any;
 }
 
 interface IState {
@@ -21,6 +22,15 @@ interface IState {
     errorText?: string;
 }
 
+async function loginUser(credentials: any) {
+    return fetch('http://localhost:4000/login', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(credentials)
+    }).then(data => data.json())
+}
 
 export default class Auth extends React.Component<IProps, IState> {
 
@@ -75,11 +85,25 @@ export default class Auth extends React.Component<IProps, IState> {
         return false;
     }
 
-    submitForm(event: React.MouseEvent): void {
+    submitForm(event: React.MouseEvent) {
         event.preventDefault();
         if (!this.validateFormFields()) {
             this.setState({ errorText: FORM_ERROR_MESSAGES.incorrectData });
             return;
+        }
+        if (this.state.loginMode) {
+            const name = this.state.name;
+            const password = this.state.password;
+            loginUser({
+                name,
+                password
+            }).then(token => {
+                console.log(token);
+                this.props.setToken(token);
+            }).catch(error => {
+                console.log(error);
+                //TODO: some state changes based on error
+            });
         }
     }
 

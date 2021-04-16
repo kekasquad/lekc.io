@@ -6,8 +6,19 @@ import StreamPresenter from '../StreamPresenter/StreamPresenter';
 import StreamViewer from '../StreamViewer/StreamViewer';
 import { Redirect, Route, Switch, withRouter } from 'react-router';
 import Search from '../Search/Search';
+import useToken from './useToken';
 
 function App() {
+  const { token, setToken } = useToken();
+  
+  if (!token) {
+    return (
+      <div className="App">
+        <Auth setToken={setToken} />
+      </div>
+    );
+  }
+
   return (
     <div className="App">
       <Switch>
@@ -22,9 +33,6 @@ function App() {
         </Route>
         <Route path="/profile">
           <NavBar currentItem={2}/>
-        </Route>
-        <Route path="/login">
-          <Auth/>
         </Route>
         <Redirect from="/" to="/search"/>
       </Switch>
