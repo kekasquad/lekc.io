@@ -1,4 +1,5 @@
-import {WebRtcPeer} from "kurento-utils";
+import { WebRtcPeer } from "kurento-utils";
+import { Socket } from 'socket.io-client';
 
 export default class Stream {
     private screenWebRtcPeer: WebRtcPeer | null = null;
@@ -19,42 +20,40 @@ export default class Stream {
     }
 
     constructor(
-        private ws: WebSocket,
+        private streamId: string,
+        private socket: Socket,
         private screenVideo: HTMLVideoElement,
         private webcamVideo: HTMLVideoElement
     ) {
-        this.ws.onmessage = (message: MessageEvent) => {
-            const parsedMessage = JSON.parse(message.data);
-            console.log('Received message: ' + message.data);
+        this.socket.on('sdpResponse', (result: string, type: 'screen' | 'webcam', response: string) => {
+            console.log(`Received sdpResponse message: ${result} ${type} with response: ${response}`);
+            this.processSdpResponse(result, type, response);
+        });
 
-            switch (parsedMessage.id) {
-                case 'sdpResponse':
-                    this.processSdpResponse(parsedMessage);
-                    break;
-                case 'stopCommunication':
-                    this.dispose();
-                    break;
-                case 'screenIceCandidate':
-                    this.screenWebRtcPeer?.addIceCandidate(parsedMessage.candidate)
-                    break;
-                case 'webcamIceCandidate':
-                    this.webcamWebRtcPeer?.addIceCandidate(parsedMessage.candidate)
-                    break;
-                default:
-                    console.error('Unrecognized message', parsedMessage);
-            }
-        }
+        this.socket.on('streamStopped', () => {
+            console.log('Received streamStopped message');
+            this.dispose();
+        });
+
+        this.socket.on('screenIceCandidate', (candidate: RTCIceCandidate) => {
+            console.log('Received screenIceCandidate message');
+            this.screenWebRtcPeer?.addIceCandidate(candidate);
+        });
+
+        this.socket.on('webcamIceCandidate', (candidate: RTCIceCandidate) => {
+            console.log('Received webcamIceCandidate message');
+            this.webcamWebRtcPeer?.addIceCandidate(candidate);
+        });
     }
 
     async startPresenter(): Promise<void> {
-        console.log('HERE');
         if (!this.screenWebRtcPeer) {
             const mediaDevices = navigator.mediaDevices as any;
             const screenStream = await mediaDevices.getDisplayMedia({ video: true });
             const options = {
                 localVideo: this.screenVideo,
                 videoStream: screenStream,
-                onicecandidate: this.onScreenIceCandidate.bind(this)
+                onicecandidate: this.onPresenterScreenIceCandidate.bind(this)
             };
 
             this.screenWebRtcPeer = WebRtcPeer.WebRtcPeerSendonly(options, (error) => {
@@ -71,7 +70,7 @@ export default class Stream {
             const options = {
                 localVideo: this.webcamVideo,
                 videoStream: webcamStream,
-                onicecandidate: this.onWebcamIceCandidate.bind(this)
+                onicecandidate: this.onPresenterWebcamIceCandidate.bind(this)
             };
 
             this.webcamWebRtcPeer = WebRtcPeer.WebRtcPeerSendonly(options, (error) => {
@@ -88,7 +87,7 @@ export default class Stream {
         if (!this.screenWebRtcPeer) {
             const options = {
                 remoteVideo: this.screenVideo,
-                onicecandidate: this.onScreenIceCandidate.bind(this)
+                onicecandidate: this.onViewerScreenIceCandidate.bind(this)
             };
 
             this.screenWebRtcPeer = WebRtcPeer.WebRtcPeerRecvonly(options, (error) => {
@@ -102,7 +101,7 @@ export default class Stream {
         if (!this.webcamWebRtcPeer) {
             const options = {
                 remoteVideo: this.webcamVideo,
-                onicecandidate: this.onWebcamIceCandidate.bind(this)
+                onicecandidate: this.onViewerWebcamIceCandidate.bind(this)
             };
 
             this.webcamWebRtcPeer = WebRtcPeer.WebRtcPeerRecvonly(options, (error) => {
@@ -115,21 +114,20 @@ export default class Stream {
         }
     }
 
-    processSdpResponse(message: any): void {
-        if (message.response != 'accepted') {
-            const errorMsg = message.message ? message.message : 'Unknow error';
-            console.warn('Call not accepted for the following reason: ' + errorMsg);
+    processSdpResponse(result: string, type: 'screen' | 'webcam', response: string): void {
+        if (result != 'accepted') {
+            const errorMsg = response || 'Unknown error';
+            console.warn(`Call not accepted for the following reason: ${errorMsg}`);
             this.dispose();
         } else {
             console.log('Process SDP response');
-            (message.type === 'screen' ?
-                this.screenWebRtcPeer : this.webcamWebRtcPeer)?.processAnswer(message.sdpAnswer);
+            (type === 'screen' ?
+                this.screenWebRtcPeer : this.webcamWebRtcPeer)?.processAnswer(response);
         }
     }
 
     stop(): void {
         if (this.screenWebRtcPeer || this.webcamWebRtcPeer) {
-            this.sendMessage({ id: 'stop' });
             this.dispose();
         }
     }
@@ -156,10 +154,17 @@ export default class Stream {
         console.error(error);
     }
 
-    private _onOffer(error: any, id: 'presenter' | 'viewer', type: 'screen' | 'webcam', sdpOffer: string): void {
-        if (error) return this.onError(error);
-        console.log(`On offer: ${id}, ${type}`);
-        this.sendMessage({ id, type, sdpOffer });
+    private _onOffer(error: any, userType: 'presenter' | 'viewer', type: 'screen' | 'webcam', sdpOffer: string): void {
+        if (error) {
+            this.onError(error);
+            return;
+        }
+        console.log(`On offer: ${userType}, ${type}`);
+        if (userType === 'presenter') {
+            this.socket.emit(userType, type, sdpOffer);
+        } else {
+            this.socket.emit(userType, this.streamId, type, sdpOffer);
+        }
     }
     private onOfferScreenPresenter(error: any, sdpOffer: string): void {
         this._onOffer(error, 'presenter', 'screen', sdpOffer);
@@ -174,19 +179,25 @@ export default class Stream {
         this._onOffer(error, 'viewer', 'webcam', sdpOffer);
     }
 
-    private _onIceCandidate(type: 'screen' | 'webcam', candidate: any): void {
-        console.log('Local candidate: ' + type + ' ' + JSON.stringify(candidate));
-
-        this.sendMessage({
-            id: 'onIceCandidate',
-            type, candidate
-        });
+    private _onIceCandidate(
+        userType: 'presenter' | 'viewer',
+        type: 'screen' | 'webcam',
+        candidate: RTCIceCandidate
+    ): void {
+        console.log(`Local ${userType} ${type} candidate for stream ${this.streamId}: `, JSON.stringify(candidate));
+        this.socket.emit(`${userType}IceCandidate`, this.streamId, type, candidate);
     }
-    private onScreenIceCandidate(candidate: any): void {
-        this._onIceCandidate('screen', candidate);
+    private onViewerScreenIceCandidate(candidate: RTCIceCandidate): void {
+        this._onIceCandidate('viewer','screen', candidate);
     }
-    private onWebcamIceCandidate(candidate: any): void {
-        this._onIceCandidate('webcam', candidate);
+    private onViewerWebcamIceCandidate(candidate: RTCIceCandidate): void {
+        this._onIceCandidate('viewer','webcam', candidate);
+    }
+    private onPresenterScreenIceCandidate(candidate: RTCIceCandidate): void {
+        this._onIceCandidate('presenter','screen', candidate);
+    }
+    private onPresenterWebcamIceCandidate(candidate: RTCIceCandidate): void {
+        this._onIceCandidate('presenter','webcam', candidate);
     }
 
     private dispose(): void {
@@ -198,11 +209,6 @@ export default class Stream {
             this.webcamWebRtcPeer.dispose();
             this.webcamWebRtcPeer = null;
         }
-    }
-
-    private sendMessage(message: any): void {
-        const jsonMessage = JSON.stringify(message);
-        console.log('Sending message: ' + jsonMessage);
-        this.ws?.send(jsonMessage);
+        this.socket.disconnect();
     }
 }

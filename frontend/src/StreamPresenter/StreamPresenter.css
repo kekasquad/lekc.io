@@ -33,3 +33,26 @@ button {
     border-left: none;
     vertical-align: top;
 }
+
+.StreamPresenter-stream_id_block {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 1rem;
+}
+
+.StreamPresenter-stream_id_block > input {
+    margin: 0 0.5rem;
+}
+
+.StreamPresenter-viewers_count_block {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+}
+
+.StreamPresenter-viewers_icon {
+    width: 25px;
+    height: 25px;
+    margin: 0 0.5rem;
+}
