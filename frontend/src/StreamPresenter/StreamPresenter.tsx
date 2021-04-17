@@ -62,7 +62,7 @@ export default class StreamPresenter extends React.Component<IProps, IState> {
 
             if (screenVideo && webcamVideo) {
                 this.setState(
-                    { socket, stream: new Stream(socket, screenVideo, webcamVideo), screenVideo, webcamVideo },
+                    { socket, stream: new Stream(socket.id, socket, screenVideo, webcamVideo), screenVideo, webcamVideo },
                     async () => {
                         await this.state.stream?.startPresenter()
                     }
@@ -146,7 +146,10 @@ export default class StreamPresenter extends React.Component<IProps, IState> {
                                 </button> : ''
                         }
                     </div>
-
+                    {
+                        this.state.socket ?
+                            <input type='text' value={this.state.socket?.id} readOnly={true} /> : ''
+                    }
                 </div>
             </div>
         );

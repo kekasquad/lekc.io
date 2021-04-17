@@ -20,6 +20,7 @@ export default class Stream {
     }
 
     constructor(
+        private streamId: string,
         private socket: Socket,
         private screenVideo: HTMLVideoElement,
         private webcamVideo: HTMLVideoElement
@@ -52,7 +53,7 @@ export default class Stream {
             const options = {
                 localVideo: this.screenVideo,
                 videoStream: screenStream,
-                onicecandidate: this.onScreenIceCandidate.bind(this)
+                onicecandidate: this.onPresenterScreenIceCandidate.bind(this)
             };
 
             this.screenWebRtcPeer = WebRtcPeer.WebRtcPeerSendonly(options, (error) => {
@@ -69,7 +70,7 @@ export default class Stream {
             const options = {
                 localVideo: this.webcamVideo,
                 videoStream: webcamStream,
-                onicecandidate: this.onWebcamIceCandidate.bind(this)
+                onicecandidate: this.onPresenterWebcamIceCandidate.bind(this)
             };
 
             this.webcamWebRtcPeer = WebRtcPeer.WebRtcPeerSendonly(options, (error) => {
@@ -86,7 +87,7 @@ export default class Stream {
         if (!this.screenWebRtcPeer) {
             const options = {
                 remoteVideo: this.screenVideo,
-                onicecandidate: this.onScreenIceCandidate.bind(this)
+                onicecandidate: this.onViewerScreenIceCandidate.bind(this)
             };
 
             this.screenWebRtcPeer = WebRtcPeer.WebRtcPeerRecvonly(options, (error) => {
@@ -100,7 +101,7 @@ export default class Stream {
         if (!this.webcamWebRtcPeer) {
             const options = {
                 remoteVideo: this.webcamVideo,
-                onicecandidate: this.onWebcamIceCandidate.bind(this)
+                onicecandidate: this.onViewerWebcamIceCandidate.bind(this)
             };
 
             this.webcamWebRtcPeer = WebRtcPeer.WebRtcPeerRecvonly(options, (error) => {
@@ -115,7 +116,7 @@ export default class Stream {
 
     processSdpResponse(result: string, type: 'screen' | 'webcam', response: string): void {
         if (result != 'accepted') {
-            const errorMsg = response || 'Unknow error';
+            const errorMsg = response || 'Unknown error';
             console.warn(`Call not accepted for the following reason: ${errorMsg}`);
             this.dispose();
         } else {
@@ -153,13 +154,17 @@ export default class Stream {
         console.error(error);
     }
 
-    private _onOffer(error: any, id: 'presenter' | 'viewer', type: 'screen' | 'webcam', sdpOffer: string): void {
+    private _onOffer(error: any, userType: 'presenter' | 'viewer', type: 'screen' | 'webcam', sdpOffer: string): void {
         if (error) {
             this.onError(error);
             return;
         }
-        console.log(`On offer: ${id}, ${type}`);
-        this.socket.emit(id, type, sdpOffer);
+        console.log(`On offer: ${userType}, ${type}`);
+        if (userType === 'presenter') {
+            this.socket.emit(userType, type, sdpOffer);
+        } else {
+            this.socket.emit(userType, this.streamId, type, sdpOffer);
+        }
     }
     private onOfferScreenPresenter(error: any, sdpOffer: string): void {
         this._onOffer(error, 'presenter', 'screen', sdpOffer);
@@ -174,16 +179,25 @@ export default class Stream {
         this._onOffer(error, 'viewer', 'webcam', sdpOffer);
     }
 
-    private _onIceCandidate(type: 'screen' | 'webcam', candidate: RTCIceCandidate): void {
-        console.log('Local candidate: ' + type + ' ' + JSON.stringify(candidate));
-
-        this.socket.emit('iceCandidate', type, candidate);
+    private _onIceCandidate(
+        userType: 'presenter' | 'viewer',
+        type: 'screen' | 'webcam',
+        candidate: RTCIceCandidate
+    ): void {
+        console.log(`Local ${userType} ${type} candidate for stream ${this.streamId}: `, JSON.stringify(candidate));
+        this.socket.emit(`${userType}IceCandidate`, this.streamId, type, candidate);
     }
-    private onScreenIceCandidate(candidate: RTCIceCandidate): void {
-        this._onIceCandidate('screen', candidate);
+    private onViewerScreenIceCandidate(candidate: RTCIceCandidate): void {
+        this._onIceCandidate('viewer','screen', candidate);
     }
-    private onWebcamIceCandidate(candidate: RTCIceCandidate): void {
-        this._onIceCandidate('webcam', candidate);
+    private onViewerWebcamIceCandidate(candidate: RTCIceCandidate): void {
+        this._onIceCandidate('viewer','webcam', candidate);
+    }
+    private onPresenterScreenIceCandidate(candidate: RTCIceCandidate): void {
+        this._onIceCandidate('presenter','screen', candidate);
+    }
+    private onPresenterWebcamIceCandidate(candidate: RTCIceCandidate): void {
+        this._onIceCandidate('presenter','webcam', candidate);
     }
 
     private dispose(): void {

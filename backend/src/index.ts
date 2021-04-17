@@ -6,7 +6,10 @@ import mongoose from 'mongoose';
 import cors from 'cors';
 import { Server, Socket } from 'socket.io';
 import { certDir, PORT, mongoUri } from './config/constants';
-import { stop, nextUniqueId, startPresenter, startViewer, onIceCandidate } from './ws-utils';
+import {
+    viewers, streamRooms, stopStream, stopViewer, startPresenter,
+    startViewer, onPresenterIceCandidate, onViewerIceCandidate
+} from './ws-utils';
 
 const options = {
     cert: fs.readFileSync(path.resolve(certDir, 'cert.pem')),
@@ -31,41 +34,47 @@ mongoose.connect(mongoUri, { useNewUrlParser: true, useUnifiedTopology: true }).
     });
 
     wsServer.on('connection', async function(socket: Socket) {
-
-        const sessionId: string = nextUniqueId();
-        console.log(`Connection received with sessionId: ${sessionId}`);
+        console.log(`Connection received with id: ${socket.id}`);
 
         socket.on('disconnect', async function(reason: string) {
-            console.log(`Connection ${sessionId} disconnected with reason: ${reason}`);
-            await stop(sessionId);
+            console.log(`Connection ${socket.id} disconnected with reason: ${reason}`);
+            if (viewers.has(socket.id)) {
+                await stopViewer(socket.id);
+            } else if (streamRooms.has(socket.id)) {
+                await stopStream(socket.id);
+            }
         });
 
         socket.on('presenter', async (type: 'screen' | 'webcam', sdpOffer: string) => {
-            console.log(`Connection ${sessionId} received presenter's SDP offer with type ${type}`);
+            console.log(`Connection ${socket.id} received presenter's SDP offer with type ${type}`);
             try {
-                const sdpAnswer: string = await startPresenter(sessionId, socket, type, sdpOffer);
+                const sdpAnswer: string = await startPresenter(socket, type, sdpOffer);
                 socket.emit('sdpResponse', 'accepted', type, sdpAnswer);
             } catch (error) {
                 console.log(`Presenter's SDP response error: ${error}`);
-                await stop(sessionId);
+                await stopStream(socket.id);
                 socket.emit('sdpResponse', 'rejected', type, error);
             }
         });
 
-        socket.on('viewer', async (type: 'screen' | 'webcam', sdpOffer: string) => {
-            console.log(`Connection ${sessionId} received viewer's SDP offer with type ${type}`);
+        socket.on('viewer', async (streamId: string, type: 'screen' | 'webcam', sdpOffer: string) => {
+            console.log(`Connection ${socket.id} received viewer's SDP offer with type ${type}`);
             try {
-                const sdpAnswer: string = await startViewer(sessionId, socket, type, sdpOffer);
+                const sdpAnswer: string = await startViewer(streamId, socket, type, sdpOffer);
                 socket.emit('sdpResponse', 'accepted', type, sdpAnswer);
             } catch (error) {
                 console.log(`Viewer's SDP response error: ${error}`);
-                await stop(sessionId);
+                await stopViewer(socket.id);
                 socket.emit('sdpResponse', 'rejected', type, error);
             }
         });
 
-        socket.on('iceCandidate', async (type: 'screen' | 'webcam', candidate: RTCIceCandidate) => {
-            await onIceCandidate(sessionId, type, candidate);
+        socket.on('presenterIceCandidate', async (streamId: string, type: 'screen' | 'webcam', candidate: RTCIceCandidate) => {
+            await onPresenterIceCandidate(streamId, socket.id, type, candidate);
+        });
+
+        socket.on('viewerIceCandidate', async (streamId: string, type: 'screen' | 'webcam', candidate: RTCIceCandidate) => {
+            await onViewerIceCandidate(streamId, socket.id, type, candidate);
         });
     });
     server.listen(PORT, (): void => {

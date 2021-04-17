@@ -11,93 +11,102 @@ interface Presenter {
 }
 
 interface Viewer {
+	id: string;
     socket: Socket;
 	screenWebRtcEndpoint: WebRtcEndpoint | null;
 	webcamWebRtcEndpoint: WebRtcEndpoint | null;
 }
 
-let idCounter = 0;
-
-const screenCandidatesQueue: Map<string, RTCIceCandidate[]> = new Map<string, RTCIceCandidate[]>();
-const webcamCandidatesQueue: Map<string, RTCIceCandidate[]> = new Map<string, RTCIceCandidate[]>();
+interface Stream {
+	id: string;
+	presenter: Presenter;
+	viewers: Map<string, Viewer>;
+	screenCandidatesQueue: Map<string, RTCIceCandidate[]>;
+	webcamCandidatesQueue: Map<string, RTCIceCandidate[]>;
+}
 
 let kurentoClient: kurento.ClientInstance | null = null;
-let presenter: Presenter | null = null;
-const viewers: Map<string, Viewer> = new Map<string, any>();
-const noPresenterMessage = 'No active presenter. Try again later...';
-const presenterExistsMessage = 'Another user is currently acting as presenter. Try again later ...';
-const endpointExistsMessage = 'Another endpoint is connected to particular user';
+export const streamRooms: Map<string, Stream> = new Map<string, Stream>();
+export const viewers: Map<string, string> = new Map<string, string>();
 
+export async function stopStream(socketId: string): Promise<void> {
+	const stream: Stream | undefined = streamRooms.get(socketId);
+	if (!stream) { return; }
 
-export function nextUniqueId(): string {
-	idCounter++;
-	return idCounter.toString();
-}
-
-export async function stop(sessionId: string): Promise<void> {
-	if (presenter !== null && presenter.id === sessionId) {
-		for (const viewer of viewers.values()) {
-			if (viewer?.socket) {
-				viewer.socket.emit('streamStopped');
-			}
+	for (const viewer of stream.viewers.values()) {
+		if (viewer?.socket) {
+			viewer.socket.emit('streamStopped');
+			viewer.webcamWebRtcEndpoint?.release();
+			viewer.screenWebRtcEndpoint?.release();
 		}
-		await presenter.screenPipeline?.release();
-		await presenter.webcamPipeline?.release();
-		presenter = null;
-		viewers.clear();
-	} else {
-		const viewer: Viewer | undefined = viewers.get(sessionId);
-		if (viewer) {
-			await viewer.screenWebRtcEndpoint?.release();
-			await viewer.webcamWebRtcEndpoint?.release();
-			viewers.delete(sessionId);
-		}
+		viewers.delete(viewer.id);
 	}
-
-	clearCandidatesQueue(sessionId);
-
-	if (viewers.size < 1 && !presenter) {
-        console.log('Closing kurento client');
-        kurentoClient?.close();
-        kurentoClient = null;
-    }
+	await stream.presenter.screenPipeline?.release();
+	await stream.presenter.webcamPipeline?.release();
+	await stream.presenter.screenWebRtcEndpoint?.release();
+	await stream.presenter.webcamWebRtcEndpoint?.release();
+	streamRooms.delete(socketId);
 }
 
-export async function startPresenter(sessionId: string, socket: Socket, type: 'screen' | 'webcam', sdpOffer: string): Promise<string> {
-	clearCandidatesQueue(sessionId);
+export async function stopViewer(socketId: string) {
+	const streamId: string | undefined = viewers.get(socketId);
+	if (!streamId) { return; }
+	viewers.delete(socketId);
 
-	if (type === 'screen') {
-		if (presenter?.screenWebRtcEndpoint) {
-			throw presenterExistsMessage;
-		}
+	const stream: Stream | undefined = streamRooms.get(streamId);
+	if (!stream) { return; }
 
-		if (!presenter) {
-			presenter = {
-				id: sessionId,
+	const viewer: Viewer | undefined = stream.viewers.get(socketId);
+	if (viewer) {
+		stream.viewers.delete(socketId);
+		await viewer.screenWebRtcEndpoint?.release();
+		await viewer.webcamWebRtcEndpoint?.release();
+	}
+	clearCandidatesQueue(streamId, socketId);
+}
+
+export async function startPresenter(socket: Socket, type: 'screen' | 'webcam', sdpOffer: string): Promise<string> {
+	const socketId: string = socket.id;
+	let stream: Stream | undefined = streamRooms.get(socketId);
+	if (!stream) {
+		stream = {
+			id: socketId,
+			presenter: {
+				id: socketId,
 				screenPipeline: null,
 				webcamPipeline: null,
 				screenWebRtcEndpoint: null,
 				webcamWebRtcEndpoint: null
-			};
+			},
+			viewers: new Map<string, Viewer>(),
+			screenCandidatesQueue: new Map<string, RTCIceCandidate[]>(),
+			webcamCandidatesQueue: new Map<string, RTCIceCandidate[]>()
+		}
+		streamRooms.set(socketId, stream);
+	}
+
+	if (type === 'screen') {
+		if (stream?.presenter?.screenWebRtcEndpoint) {
+			throw `Presenter for stream ${socketId} already has ${type} webRtcEndpoint`;
 		}
 
 		if (!kurentoClient) {
 			kurentoClient = await kurento(wsUri);
 		}
-		presenter.screenPipeline = await kurentoClient.create('MediaPipeline');
-		presenter.screenWebRtcEndpoint = await presenter.screenPipeline.create('WebRtcEndpoint');
+		stream.presenter.screenPipeline = await kurentoClient.create('MediaPipeline');
+		stream.presenter.screenWebRtcEndpoint = await stream.presenter.screenPipeline.create('WebRtcEndpoint');
 
-		const candidatesQueueItem: RTCIceCandidate[] | undefined = screenCandidatesQueue.get(sessionId);
+		const candidatesQueueItem: RTCIceCandidate[] | undefined = stream.screenCandidatesQueue.get(socketId);
 		if (candidatesQueueItem) {
 			while(candidatesQueueItem && candidatesQueueItem.length) {
 				const candidate: RTCIceCandidate | undefined = candidatesQueueItem.shift();
 				if (candidate) {
-					await presenter.screenWebRtcEndpoint.addIceCandidate(candidate);
+					await stream.presenter.screenWebRtcEndpoint.addIceCandidate(candidate);
 				}
 			}
 		}
 
-		presenter.screenWebRtcEndpoint.on('IceCandidateFound', (
+		stream.presenter.screenWebRtcEndpoint.on('IceCandidateFound', (
 			event: kurento.Event<'IceCandidateFound', {candidate: kurento.IceCandidate}>
 			) => {
 				const candidate: RTCIceCandidate =
@@ -106,41 +115,31 @@ export async function startPresenter(sessionId: string, socket: Socket, type: 's
 			}
 		);
 
-		const sdpAnswer: string = await presenter.screenWebRtcEndpoint.processOffer(sdpOffer);
-		await presenter.screenWebRtcEndpoint.gatherCandidates();
+		const sdpAnswer: string = await stream.presenter.screenWebRtcEndpoint.processOffer(sdpOffer);
+		await stream.presenter.screenWebRtcEndpoint.gatherCandidates();
 		return sdpAnswer;
 	} else {
-		if (presenter?.webcamWebRtcEndpoint) {
-			throw presenterExistsMessage;
-		}
-
-		if (!presenter) {
-			presenter = {
-				id: sessionId,
-				screenPipeline: null,
-				webcamPipeline: null,
-				screenWebRtcEndpoint: null,
-				webcamWebRtcEndpoint: null
-			};
+		if (stream?.presenter?.webcamWebRtcEndpoint) {
+			throw `Presenter for stream ${socketId} already has ${type} webRtcEndpoint`;
 		}
 
 		if (!kurentoClient) {
 			kurentoClient = await kurento(wsUri);
 		}
-		presenter.webcamPipeline = await kurentoClient.create('MediaPipeline');
-		presenter.webcamWebRtcEndpoint = await presenter.webcamPipeline.create('WebRtcEndpoint');
+		stream.presenter.webcamPipeline = await kurentoClient.create('MediaPipeline');
+		stream.presenter.webcamWebRtcEndpoint = await stream.presenter.webcamPipeline.create('WebRtcEndpoint');
 
-		const candidatesQueueItem: RTCIceCandidate[] | undefined = webcamCandidatesQueue.get(sessionId);
+		const candidatesQueueItem: RTCIceCandidate[] | undefined = stream.webcamCandidatesQueue.get(socketId);
 		if (candidatesQueueItem) {
 			while(candidatesQueueItem && candidatesQueueItem.length) {
 				const candidate: RTCIceCandidate | undefined = candidatesQueueItem.shift();
 				if (candidate) {
-					await presenter.webcamWebRtcEndpoint.addIceCandidate(candidate);
+					await stream.presenter.webcamWebRtcEndpoint.addIceCandidate(candidate);
 				}
 			}
 		}
 
-		presenter.webcamWebRtcEndpoint.on('IceCandidateFound', (
+		stream.presenter.webcamWebRtcEndpoint.on('IceCandidateFound', (
 			event: kurento.Event<'IceCandidateFound', {candidate: kurento.IceCandidate}>
 			) => {
 				const candidate: RTCIceCandidate =
@@ -149,38 +148,41 @@ export async function startPresenter(sessionId: string, socket: Socket, type: 's
 			}
 		);
 
-		const sdpAnswer: string = await presenter.webcamWebRtcEndpoint.processOffer(sdpOffer);
-		await presenter.webcamWebRtcEndpoint.gatherCandidates();
+		const sdpAnswer: string = await stream.presenter.webcamWebRtcEndpoint.processOffer(sdpOffer);
+		await stream.presenter.webcamWebRtcEndpoint.gatherCandidates();
 		return sdpAnswer;
 	}
 }
 
-export async function startViewer(sessionId: string, socket: Socket, type: 'screen' | 'webcam', sdpOffer: string): Promise<string> {
-	clearCandidatesQueue(sessionId);
-
-	if (presenter === null) {
-		throw noPresenterMessage;
+export async function startViewer(streamId: string, socket: Socket, type: 'screen' | 'webcam', sdpOffer: string): Promise<string> {
+	const socketId: string = socket.id;
+	const stream: Stream | undefined = streamRooms.get(streamId);
+	if (!stream) {
+		throw `Stream with id ${streamId} not found`;
 	}
 
+	clearCandidatesQueue(streamId, socketId);
+
 	if (type === 'screen') {
-		if (!presenter.screenPipeline || !presenter.screenWebRtcEndpoint) {
-			await stop(sessionId);
-			throw noPresenterMessage;
+		if (!stream.presenter.screenPipeline || !stream.presenter.screenWebRtcEndpoint) {
+			await stopViewer(socketId);
+			throw `Stream ${streamId} presenter doesn't have ${type} webRtcEndpoint`;
 		}
 
-		const viewer: Viewer | undefined = viewers.get(sessionId);
+		const viewer: Viewer | undefined = stream.viewers.get(socketId);
 		if (viewer?.screenWebRtcEndpoint) {
-			throw endpointExistsMessage;
+			throw `Stream ${streamId} viewer's ${type} webRtcEndpoint already exists`;
 		}
-		const screenWebRtcEndpoint = await presenter.screenPipeline.create('WebRtcEndpoint');
+		const screenWebRtcEndpoint: WebRtcEndpoint = await stream.presenter.screenPipeline.create('WebRtcEndpoint');
 
 		if (viewer) {
 			viewer.screenWebRtcEndpoint = screenWebRtcEndpoint;
 		} else {
-			viewers.set(sessionId, { screenWebRtcEndpoint, webcamWebRtcEndpoint: null, socket });
+			stream.viewers.set(socketId, { id: socketId, screenWebRtcEndpoint, webcamWebRtcEndpoint: null, socket });
+			viewers.set(socketId, streamId);
 		}
 
-		const candidatesQueueItem: RTCIceCandidate[] | undefined = screenCandidatesQueue.get(sessionId);
+		const candidatesQueueItem: RTCIceCandidate[] | undefined = stream.screenCandidatesQueue.get(socketId);
 		if (candidatesQueueItem) {
 			while(candidatesQueueItem.length) {
 				const candidate: RTCIceCandidate | undefined = candidatesQueueItem.shift();
@@ -200,28 +202,29 @@ export async function startViewer(sessionId: string, socket: Socket, type: 'scre
 		);
 
 		const sdpAnswer: string = await screenWebRtcEndpoint.processOffer(sdpOffer);
-		await presenter.screenWebRtcEndpoint.connect(screenWebRtcEndpoint);
+		await stream.presenter.screenWebRtcEndpoint.connect(screenWebRtcEndpoint);
 		await screenWebRtcEndpoint.gatherCandidates();
 		return sdpAnswer;
 	} else {
-		if (!presenter.webcamPipeline || !presenter.webcamWebRtcEndpoint) {
-			await stop(sessionId);
-			throw noPresenterMessage;
+		if (!stream.presenter.webcamPipeline || !stream.presenter.webcamWebRtcEndpoint) {
+			await stopViewer(socketId);
+			throw `Stream ${streamId} presenter doesn't have ${type} webRtcEndpoint`;
 		}
 
-		const viewer: Viewer | undefined = viewers.get(sessionId);
+		const viewer: Viewer | undefined = stream.viewers.get(socketId);
 		if (viewer?.webcamWebRtcEndpoint) {
-			throw endpointExistsMessage;
+			throw `Stream ${streamId} viewer's ${type} webRtcEndpoint already exists`;
 		}
-		const webcamWebRtcEndpoint = await presenter.webcamPipeline.create('WebRtcEndpoint');
+		const webcamWebRtcEndpoint = await stream.presenter.webcamPipeline.create('WebRtcEndpoint');
 
 		if (viewer) {
 			viewer.webcamWebRtcEndpoint = webcamWebRtcEndpoint;
 		} else {
-			viewers.set(sessionId, { webcamWebRtcEndpoint, screenWebRtcEndpoint: null, socket });
+			stream.viewers.set(socketId, { id: socketId, webcamWebRtcEndpoint, screenWebRtcEndpoint: null, socket });
+			viewers.set(socketId, streamId);
 		}
 
-		const candidatesQueueItem: RTCIceCandidate[] | undefined = webcamCandidatesQueue.get(sessionId);
+		const candidatesQueueItem: RTCIceCandidate[] | undefined = stream.webcamCandidatesQueue.get(socketId);
 		if (candidatesQueueItem) {
 			while(candidatesQueueItem.length) {
 				const candidate: RTCIceCandidate | undefined = candidatesQueueItem.shift();
@@ -241,65 +244,73 @@ export async function startViewer(sessionId: string, socket: Socket, type: 'scre
 		);
 
 		const sdpAnswer: string = await webcamWebRtcEndpoint.processOffer(sdpOffer);
-		await presenter.webcamWebRtcEndpoint.connect(webcamWebRtcEndpoint);
+		await stream.presenter.webcamWebRtcEndpoint.connect(webcamWebRtcEndpoint);
 		await webcamWebRtcEndpoint.gatherCandidates();
 		return sdpAnswer;
 	}
 }
 
-function clearCandidatesQueue(sessionId: string): void {
-	screenCandidatesQueue.delete(sessionId);
-	webcamCandidatesQueue.delete(sessionId);
+function clearCandidatesQueue(streamId: string, socketId: string): void {
+	const stream: Stream | undefined = streamRooms.get(streamId);
+	if (stream) {
+		stream.screenCandidatesQueue.delete(socketId);
+		stream.webcamCandidatesQueue.delete(socketId);
+	}
 }
 
-export async function onIceCandidate(
-	sessionId: string,
+export async function onPresenterIceCandidate(
+	streamId: string,
+	socketId: string,
 	type: 'screen' | 'webcam',
 	_candidate: RTCIceCandidate
 ): Promise<void> {
+	const stream: Stream | undefined = streamRooms.get(streamId);
+	if (!stream) { return; }
+
     const candidate: RTCIceCandidate = kurento.getComplexType('IceCandidate')(_candidate);
 
-    if (type === 'screen') {
-		if (presenter && presenter.id === sessionId && presenter.screenWebRtcEndpoint) {
-			console.log('Sending presenter candidate');
-			await presenter.screenWebRtcEndpoint?.addIceCandidate(candidate);
-		}
-		else {
-			const viewer: Viewer | undefined = viewers.get(sessionId);
-			if (viewer && viewer.screenWebRtcEndpoint) {
-				console.log('Sending viewer candidate');
-				await viewer.screenWebRtcEndpoint.addIceCandidate(candidate);
-			}
-			else {
-				console.log('Queueing candidate');
-				if (!screenCandidatesQueue.has(sessionId)) {
-					screenCandidatesQueue.set(sessionId, [candidate]);
-				} else {
-					screenCandidatesQueue.get(sessionId)?.push(candidate);
-				}
-			}
-		}
+	console.log(`Sending presenter ${type} ICE candidate for stream ${streamId}, socketId ${socketId}`);
+
+    if (type === 'screen' && stream.presenter.screenWebRtcEndpoint) {
+		await stream.presenter.screenWebRtcEndpoint?.addIceCandidate(candidate);
+	} else if (stream.presenter.webcamWebRtcEndpoint) {
+		await stream.presenter.webcamWebRtcEndpoint.addIceCandidate(candidate);
+	}
+}
+
+export async function onViewerIceCandidate(
+	streamId: string,
+	socketId: string,
+	type: 'screen' | 'webcam',
+	_candidate: RTCIceCandidate
+): Promise<void> {
+	const stream: Stream | undefined = streamRooms.get(streamId);
+	if (!stream) { return; }
+	const viewer: Viewer | undefined = stream.viewers.get(socketId);
+	if (!viewer) { return; }
+
+	const candidate: RTCIceCandidate = kurento.getComplexType('IceCandidate')(_candidate);
+	let webRtcEndpoint: WebRtcEndpoint | null = null;
+	let candidatesQueue: Map<string, RTCIceCandidate[]>;
+
+	if (type === 'screen') {
+		webRtcEndpoint = viewer.screenWebRtcEndpoint;
+		candidatesQueue = stream.screenCandidatesQueue;
 	} else {
-		if (presenter && presenter.id === sessionId && presenter.webcamWebRtcEndpoint) {
-			console.info('Sending presenter candidate');
-			await presenter.webcamWebRtcEndpoint?.addIceCandidate(candidate);
-		}
-		else {
-			const viewer: Viewer | undefined = viewers.get(sessionId);
-			if (viewer && viewer.webcamWebRtcEndpoint) {
-				console.info('Sending viewer candidate');
-				await viewer.webcamWebRtcEndpoint.addIceCandidate(candidate);
-			}
-			else {
-				console.info('Queueing candidate');
-				if (!webcamCandidatesQueue.has(sessionId)) {
-					webcamCandidatesQueue.set(sessionId, [candidate]);
-				} else {
-					webcamCandidatesQueue.get(sessionId)?.push(candidate);
-				}
-			}
-		}
+		webRtcEndpoint = viewer.webcamWebRtcEndpoint;
+		candidatesQueue = stream.webcamCandidatesQueue;
 	}
 
+	console.log(`Sending viewer ${type} ICE candidate for stream ${streamId}, socketId ${socketId}`);
 
+	if (webRtcEndpoint) {
+		await webRtcEndpoint.addIceCandidate(candidate);
+	} else {
+		console.log(`Queueing viewer ${type} ICE candidate for streamId ${streamId}, socketId ${socketId}`);
+		if (!candidatesQueue.has(socketId)) {
+			candidatesQueue.set(socketId, [candidate]);
+		} else {
+			candidatesQueue.get(socketId)?.push(candidate);
+		}
+	}
 }

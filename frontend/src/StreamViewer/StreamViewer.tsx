@@ -11,6 +11,7 @@ interface IProps {
 }
 
 interface IState {
+    streamIdInputValue: string;
     stream: Stream | null;
     socket: Socket | null;
     screenVideo: HTMLVideoElement | null;
@@ -24,6 +25,7 @@ export default class StreamViewer extends React.Component<IProps, IState> {
         super(props);
 
         this.state = {
+            streamIdInputValue: '',
             stream: null,
             socket: null,
             screenVideo: null,
@@ -32,6 +34,7 @@ export default class StreamViewer extends React.Component<IProps, IState> {
 
         this.startViewer = this.startViewer.bind(this);
         this.stop = this.stop.bind(this);
+        this.handleStreamInputChange = this.handleStreamInputChange.bind(this);
     }
 
     componentWillUnmount() {
@@ -39,7 +42,12 @@ export default class StreamViewer extends React.Component<IProps, IState> {
         this.state.stream?.stop();
     }
 
+    handleStreamInputChange(event: any): void {
+        this.setState({streamIdInputValue: event.target.value});
+    }
+
     async startViewer(): Promise<void> {
+        if (!this.state.streamIdInputValue) { return; }
         if (this.state.stream) {
             await this.state.stream.startViewer();
         } else {
@@ -51,9 +59,9 @@ export default class StreamViewer extends React.Component<IProps, IState> {
 
             if (screenVideo && webcamVideo) {
                 this.setState(
-                    { socket, stream: new Stream(socket, screenVideo, webcamVideo), screenVideo, webcamVideo },
+                    { socket, stream: new Stream(this.state.streamIdInputValue, socket, screenVideo, webcamVideo), screenVideo, webcamVideo },
                     async () => {
-                        await this.state.stream?.startViewer()
+                        await this.state.stream?.startViewer();
                     }
                 );
             } else {
@@ -66,7 +74,7 @@ export default class StreamViewer extends React.Component<IProps, IState> {
         if (this.state.stream) {
             this.state.stream.stop();
             this.state.socket?.disconnect();
-            this.setState({ stream: null, socket: null });
+            this.setState({ stream: null, socket: null, streamIdInputValue: '' });
         } else {
             console.error('No active stream');
         }
@@ -81,10 +89,16 @@ export default class StreamViewer extends React.Component<IProps, IState> {
                     <video id='StreamViewer-webcam_video' autoPlay={true} poster={streamWebcamPlaceholder}></video>
 
                     <div className='StreamViewer-control_buttons_group'>
+                        <input type='text' value={this.state.streamIdInputValue}
+                               onChange={this.handleStreamInputChange}
+                               readOnly={!!this.state.stream}/>
                         {
                             this.state.stream ?
-                                <button className='common_button red_button' onClick={ this.stop }>Stop watching</button> :
-                                <button className='common_button' onClick={ this.startViewer }>Start watching</button>
+                                <button className='common_button red_button'
+                                        onClick={ this.stop }>Stop watching</button> :
+                                <button disabled={!this.state.streamIdInputValue}
+                                        className='common_button'
+                                        onClick={ this.startViewer }>Start watching</button>
                         }
                     </div>
                 </div>
