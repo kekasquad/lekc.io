@@ -52,21 +52,26 @@ export default class StreamViewer extends React.Component<IProps, IState> {
             await this.state.stream.startViewer();
         } else {
             const socket: Socket = this.state.socket || io(`wss://localhost:4000`);
-            socket.connect();
-            console.log(socket.connected);
             const screenVideo: HTMLVideoElement = document.querySelector('#StreamViewer-screen_video') as HTMLVideoElement;
             const webcamVideo: HTMLVideoElement = document.querySelector('#StreamViewer-webcam_video') as HTMLVideoElement;
 
-            if (screenVideo && webcamVideo) {
-                this.setState(
-                    { socket, stream: new Stream(this.state.streamIdInputValue, socket, screenVideo, webcamVideo), screenVideo, webcamVideo },
-                    async () => {
-                        await this.state.stream?.startViewer();
-                    }
-                );
-            } else {
-                console.error('Cannot load stream');
-            }
+            socket.on('connect', () => {
+                if (screenVideo && webcamVideo) {
+                    this.setState(
+                        {
+                            socket,
+                            stream: new Stream(this.state.streamIdInputValue, socket, screenVideo, webcamVideo),
+                            screenVideo,
+                            webcamVideo
+                        },
+                        async () => {
+                            await this.state.stream?.startViewer();
+                        }
+                    );
+                } else {
+                    console.error('Cannot load stream');
+                }
+            });
         }
     }
 
@@ -89,9 +94,15 @@ export default class StreamViewer extends React.Component<IProps, IState> {
                     <video id='StreamViewer-webcam_video' autoPlay={true} poster={streamWebcamPlaceholder}></video>
 
                     <div className='StreamViewer-control_buttons_group'>
-                        <input type='text' value={this.state.streamIdInputValue}
-                               onChange={this.handleStreamInputChange}
-                               readOnly={!!this.state.stream}/>
+                        <div>
+                            <span>Stream ID: <b>{this.state.stream ? this.state.streamIdInputValue : ''}</b></span>
+                            {
+                                !this.state.stream ?
+                                    <input type='text' value={this.state.streamIdInputValue}
+                                           onChange={this.handleStreamInputChange}
+                                           readOnly={!!this.state.stream}/> : ''
+                            }
+                        </div>
                         {
                             this.state.stream ?
                                 <button className='common_button red_button'

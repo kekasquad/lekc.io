@@ -16,7 +16,7 @@ const options = {
     key:  fs.readFileSync(path.resolve(certDir, 'key.pem'))
 };
 
-mongoose.connect(mongoUri, { useNewUrlParser: true, useUnifiedTopology: true }).then(() => {
+mongoose.connect(mongoUri, { useNewUrlParser: true, useUnifiedTopology: true, authSource: 'admin' }).then(() => {
     const app: express.Express = express();
     app.use(cors());
     app.use(express.json());

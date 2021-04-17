@@ -14,6 +14,7 @@ interface IProps {
 }
 
 interface IState {
+    streamId: string;
     stream: Stream | null;
     socket: Socket | null;
     screenVideo: HTMLVideoElement | null;
@@ -29,6 +30,7 @@ export default class StreamPresenter extends React.Component<IProps, IState> {
         super(props);
 
         this.state = {
+            streamId: '',
             stream: null,
             socket: null,
             screenVideo: null,
@@ -60,16 +62,25 @@ export default class StreamPresenter extends React.Component<IProps, IState> {
             const webcamVideo: HTMLVideoElement =
                 document.querySelector('#StreamPresenter-webcam_video') as HTMLVideoElement;
 
-            if (screenVideo && webcamVideo) {
-                this.setState(
-                    { socket, stream: new Stream(socket.id, socket, screenVideo, webcamVideo), screenVideo, webcamVideo },
-                    async () => {
-                        await this.state.stream?.startPresenter()
-                    }
-                );
-            } else {
-                console.error('Cannot start stream');
-            }
+            socket.on('connect', () => {
+                if (screenVideo && webcamVideo) {
+                    this.setState(
+                        {
+                            streamId: socket.id,
+                            socket,
+                            stream: new Stream(socket.id, socket, screenVideo, webcamVideo),
+                            screenVideo,
+                            webcamVideo
+                        },
+                        async () => {
+                            console.log(this.state);
+                            await this.state.stream?.startPresenter()
+                        }
+                    );
+                } else {
+                    console.error('Cannot start stream');
+                }
+            });
         }
     }
 
@@ -77,7 +88,7 @@ export default class StreamPresenter extends React.Component<IProps, IState> {
         if (this.state.stream) {
             this.state.stream.stop();
             this.state.socket?.disconnect();
-            this.setState({ stream: null, socket: null });
+            this.setState({ stream: null, socket: null, streamId: '', });
         } else {
             console.error('No active stream');
         }
@@ -145,11 +156,14 @@ export default class StreamPresenter extends React.Component<IProps, IState> {
                                     <img src={microTurnButton} alt='Turn on/off micro'/>
                                 </button> : ''
                         }
+                        {
+                            this.state.stream ?
+                                <div>
+                                    <span>Stream ID: </span>
+                                    <input type='text' value={this.state.streamId} readOnly={true} />
+                                </div> : ''
+                        }
                     </div>
-                    {
-                        this.state.socket ?
-                            <input type='text' value={this.state.socket?.id} readOnly={true} /> : ''
-                    }
                 </div>
             </div>
         );
