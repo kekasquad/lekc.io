@@ -8,6 +8,7 @@ import streamWebcamPlaceholder from '../assets/stream-webcam-placeholder.png';
 import webcamTurnButton from '../assets/webcam-turn-button.png';
 import screenTurnButton from '../assets/screen-turn-button.png';
 import microTurnButton from '../assets/micro-turn-button.png';
+import viewersIcon from "../assets/viewers-icon.png";
 
 interface IProps {
     [key: string]: any
@@ -16,6 +17,7 @@ interface IProps {
 interface IState {
     streamId: string;
     stream: Stream | null;
+    streamViewersCount: number;
     socket: Socket | null;
     screenVideo: HTMLVideoElement | null;
     webcamVideo: HTMLVideoElement | null;
@@ -32,6 +34,7 @@ export default class StreamPresenter extends React.Component<IProps, IState> {
         this.state = {
             streamId: '',
             stream: null,
+            streamViewersCount: 0,
             socket: null,
             screenVideo: null,
             webcamVideo: null,
@@ -80,6 +83,10 @@ export default class StreamPresenter extends React.Component<IProps, IState> {
                 } else {
                     console.error('Cannot start stream');
                 }
+            });
+
+            socket.on('viewersCount', (viewersCount: number) => {
+                this.setState({ streamViewersCount: viewersCount });
             });
         }
     }
@@ -158,9 +165,16 @@ export default class StreamPresenter extends React.Component<IProps, IState> {
                         }
                         {
                             this.state.stream ?
-                                <div>
+                                <div className='StreamPresenter-stream_id_block'>
                                     <span>Stream ID: </span>
                                     <input type='text' value={this.state.streamId} readOnly={true} />
+                                </div> : ''
+                        }
+                        {
+                            this.state.stream ?
+                                <div className='StreamPresenter-viewers_count_block'>
+                                    <img className='StreamPresenter-viewers_icon' src={viewersIcon}/>
+                                    <span>{ this.state.streamViewersCount }</span>
                                 </div> : ''
                         }
                     </div>

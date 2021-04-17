@@ -5,6 +5,7 @@ import NavBar from '../NavBar/NavBar';
 import Stream from '../lib/stream';
 import streamScreenPlaceholder from '../assets/stream-screen-placeholder.png';
 import streamWebcamPlaceholder from '../assets/stream-webcam-placeholder.png';
+import viewersIcon from '../assets/viewers-icon.png';
 
 interface IProps {
     [key: string]: any
@@ -13,6 +14,7 @@ interface IProps {
 interface IState {
     streamIdInputValue: string;
     stream: Stream | null;
+    streamViewersCount: number;
     socket: Socket | null;
     screenVideo: HTMLVideoElement | null;
     webcamVideo: HTMLVideoElement | null;
@@ -27,6 +29,7 @@ export default class StreamViewer extends React.Component<IProps, IState> {
         this.state = {
             streamIdInputValue: '',
             stream: null,
+            streamViewersCount: 0,
             socket: null,
             screenVideo: null,
             webcamVideo: null
@@ -72,6 +75,10 @@ export default class StreamViewer extends React.Component<IProps, IState> {
                     console.error('Cannot load stream');
                 }
             });
+
+            socket.on('viewersCount', (viewersCount: number) => {
+                this.setState({ streamViewersCount: viewersCount });
+            });
         }
     }
 
@@ -94,7 +101,7 @@ export default class StreamViewer extends React.Component<IProps, IState> {
                     <video id='StreamViewer-webcam_video' autoPlay={true} poster={streamWebcamPlaceholder}></video>
 
                     <div className='StreamViewer-control_buttons_group'>
-                        <div>
+                        <div className='StreamViewer-stream_id_block'>
                             <span>Stream ID: <b>{this.state.stream ? this.state.streamIdInputValue : ''}</b></span>
                             {
                                 !this.state.stream ?
@@ -110,6 +117,13 @@ export default class StreamViewer extends React.Component<IProps, IState> {
                                 <button disabled={!this.state.streamIdInputValue}
                                         className='common_button'
                                         onClick={ this.startViewer }>Start watching</button>
+                        }
+                        {
+                            this.state.stream ?
+                                <div className='StreamViewer-viewers_count_block'>
+                                    <img className='StreamViewer-viewers_icon' src={viewersIcon}/>
+                                    <span>{ this.state.streamViewersCount }</span>
+                                </div> : ''
                         }
                     </div>
                 </div>

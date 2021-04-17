@@ -4,6 +4,7 @@ import { wsUri } from './config/constants';
 
 interface Presenter {
     id: string;
+    socket: Socket;
     screenPipeline: MediaPipeline | null;
 	webcamPipeline: MediaPipeline | null;
     screenWebRtcEndpoint: WebRtcEndpoint | null;
@@ -61,6 +62,7 @@ export async function stopViewer(socketId: string) {
 		stream.viewers.delete(socketId);
 		await viewer.screenWebRtcEndpoint?.release();
 		await viewer.webcamWebRtcEndpoint?.release();
+		await leaveRoom(stream, viewer.socket);
 	}
 	clearCandidatesQueue(streamId, socketId);
 }
@@ -73,6 +75,7 @@ export async function startPresenter(socket: Socket, type: 'screen' | 'webcam', 
 			id: socketId,
 			presenter: {
 				id: socketId,
+				socket,
 				screenPipeline: null,
 				webcamPipeline: null,
 				screenWebRtcEndpoint: null,
@@ -180,6 +183,7 @@ export async function startViewer(streamId: string, socket: Socket, type: 'scree
 		} else {
 			stream.viewers.set(socketId, { id: socketId, screenWebRtcEndpoint, webcamWebRtcEndpoint: null, socket });
 			viewers.set(socketId, streamId);
+			await joinRoom(stream, socket);
 		}
 
 		const candidatesQueueItem: RTCIceCandidate[] | undefined = stream.screenCandidatesQueue.get(socketId);
@@ -222,6 +226,7 @@ export async function startViewer(streamId: string, socket: Socket, type: 'scree
 		} else {
 			stream.viewers.set(socketId, { id: socketId, webcamWebRtcEndpoint, screenWebRtcEndpoint: null, socket });
 			viewers.set(socketId, streamId);
+			await joinRoom(stream, socket);
 		}
 
 		const candidatesQueueItem: RTCIceCandidate[] | undefined = stream.webcamCandidatesQueue.get(socketId);
@@ -313,4 +318,16 @@ export async function onViewerIceCandidate(
 			candidatesQueue.get(socketId)?.push(candidate);
 		}
 	}
+}
+
+async function joinRoom(stream: Stream, socket: Socket) {
+	console.log('HERERERERER');
+	await socket.join(stream.id);
+	socket.to(stream.id).emit('viewersCount', stream.viewers.size);
+	socket.emit('viewersCount', stream.viewers.size);
+}
+
+async function leaveRoom(stream: Stream, socket: Socket) {
+	socket.to(stream.id).emit('viewersCount', stream.viewers.size);
+	await socket.leave(stream.id);
 }
