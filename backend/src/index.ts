@@ -8,13 +8,15 @@ import { Server, Socket } from 'socket.io';
 import { certDir, PORT, mongoUri } from './config/constants';
 import {
     viewers, streamRooms, stopStream, stopViewer, startPresenter,
-    startViewer, onPresenterIceCandidate, onViewerIceCandidate
+    startViewer, onPresenterIceCandidate, onViewerIceCandidate, onChatMessage
 } from './ws-utils';
 
 const options = {
     cert: fs.readFileSync(path.resolve(certDir, 'cert.pem')),
     key:  fs.readFileSync(path.resolve(certDir, 'key.pem'))
 };
+
+export let wsServer: Server;
 
 mongoose.connect(mongoUri, { useNewUrlParser: true, useUnifiedTopology: true, authSource: 'admin' }).then(() => {
     const app: express.Express = express();
@@ -27,7 +29,7 @@ mongoose.connect(mongoUri, { useNewUrlParser: true, useUnifiedTopology: true, au
 
     const server: https.Server = https.createServer(options, app);
 
-    const wsServer: Server = new Server(server, {
+    wsServer = new Server(server, {
         cors: {
             origin: '*'
         }
@@ -36,7 +38,7 @@ mongoose.connect(mongoUri, { useNewUrlParser: true, useUnifiedTopology: true, au
     wsServer.on('connection', async function(socket: Socket) {
         console.log(`Connection received with id: ${socket.id}`);
 
-        socket.on('disconnect', async function(reason: string) {
+        socket.on('disconnect', async (reason: string) => {
             console.log(`Connection ${socket.id} disconnected with reason: ${reason}`);
             if (viewers.has(socket.id)) {
                 await stopViewer(socket.id);
@@ -76,6 +78,10 @@ mongoose.connect(mongoUri, { useNewUrlParser: true, useUnifiedTopology: true, au
         socket.on('viewerIceCandidate', async (streamId: string, type: 'screen' | 'webcam', candidate: RTCIceCandidate) => {
             await onViewerIceCandidate(streamId, socket.id, type, candidate);
         });
+
+        socket.on('sendChatMessage', (streamId: string, userName: string, message: string) => {
+            onChatMessage(socket, streamId, userName, message);
+        })
     });
     server.listen(PORT, (): void => {
         console.log(`Server is listening on port ${PORT}`);

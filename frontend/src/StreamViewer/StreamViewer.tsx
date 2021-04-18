@@ -6,6 +6,7 @@ import Stream from '../lib/stream';
 import streamScreenPlaceholder from '../assets/stream-screen-placeholder.png';
 import streamWebcamPlaceholder from '../assets/stream-webcam-placeholder.png';
 import viewersIcon from '../assets/viewers-icon.png';
+import Chat from '../Chat/Chat';
 
 interface IProps {
     [key: string]: any
@@ -98,7 +99,15 @@ export default class StreamViewer extends React.Component<IProps, IState> {
                 <NavBar currentItem={2}/>
                 <div className="StreamViewer-component">
                     <video id='StreamViewer-screen_video' autoPlay={true} poster={streamScreenPlaceholder}></video>
-                    <video id='StreamViewer-webcam_video' autoPlay={true} poster={streamWebcamPlaceholder}></video>
+                    <div>
+                        <video id='StreamViewer-webcam_video' autoPlay={true} poster={streamWebcamPlaceholder}></video>
+                        {
+                            this.state.stream && this.state.socket ?
+                                <div className='StreamViewer-chat_block'>
+                                    <Chat socket={this.state.socket} streamId={this.state.streamIdInputValue}/>
+                                </div> : ''
+                        }
+                    </div>
 
                     <div className='StreamViewer-control_buttons_group'>
                         <div className='StreamViewer-stream_id_block'>

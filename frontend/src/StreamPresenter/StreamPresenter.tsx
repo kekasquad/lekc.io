@@ -8,7 +8,8 @@ import streamWebcamPlaceholder from '../assets/stream-webcam-placeholder.png';
 import webcamTurnButton from '../assets/webcam-turn-button.png';
 import screenTurnButton from '../assets/screen-turn-button.png';
 import microTurnButton from '../assets/micro-turn-button.png';
-import viewersIcon from "../assets/viewers-icon.png";
+import viewersIcon from '../assets/viewers-icon.png';
+import Chat from '../Chat/Chat';
 
 interface IProps {
     [key: string]: any
@@ -134,7 +135,15 @@ export default class StreamPresenter extends React.Component<IProps, IState> {
                 <NavBar currentItem={1}/>
                 <div className="StreamPresenter-component">
                     <video id='StreamPresenter-screen_video' autoPlay={true} poster={streamScreenPlaceholder}></video>
-                    <video id='StreamPresenter-webcam_video' autoPlay={true} poster={streamWebcamPlaceholder}></video>
+                    <div>
+                        <video id='StreamPresenter-webcam_video' autoPlay={true} poster={streamWebcamPlaceholder}></video>
+                        {
+                            this.state.stream && this.state.socket ?
+                                <div className='StreamPresenter-chat_block'>
+                                    <Chat socket={this.state.socket} streamId={this.state.streamId}/>
+                                </div> : ''
+                        }
+                    </div>
 
                     <div className='StreamPresenter-control_buttons_group'>
                         {

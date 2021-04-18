@@ -1,6 +1,7 @@
 import kurento, { MediaPipeline, WebRtcEndpoint } from 'kurento-client';
 import { Socket } from 'socket.io';
 import { wsUri } from './config/constants';
+import { wsServer } from './index';
 
 interface Presenter {
     id: string;
@@ -320,14 +321,22 @@ export async function onViewerIceCandidate(
 	}
 }
 
-async function joinRoom(stream: Stream, socket: Socket) {
-	console.log('HERERERERER');
+export function onChatMessage(socket: Socket, streamId: string, userName: string, message: string): void {
+	const stream: Stream | undefined = streamRooms.get(streamId);
+	if (!stream) { return; }
+
+	const viewerStream: string | undefined = viewers.get(socket.id);
+	if (viewerStream && viewerStream !== streamId || !viewerStream && socket.id !== streamId) { return; }
+	wsServer.in(streamId).emit('receiveChatMessage', streamId, userName, message, new Date());
+}
+
+async function joinRoom(stream: Stream, socket: Socket): Promise<void> {
 	await socket.join(stream.id);
 	socket.to(stream.id).emit('viewersCount', stream.viewers.size);
 	socket.emit('viewersCount', stream.viewers.size);
 }
 
-async function leaveRoom(stream: Stream, socket: Socket) {
+async function leaveRoom(stream: Stream, socket: Socket): Promise<void> {
 	socket.to(stream.id).emit('viewersCount', stream.viewers.size);
 	await socket.leave(stream.id);
 }

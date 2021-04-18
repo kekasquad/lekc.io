@@ -1,0 +1,28 @@
+@import '../variables.css';
+
+.ChatMessage-component {
+    width: 100%;
+    border-radius: 7px;
+    height: 100%;
+    background-color: var(--light-grey);
+    padding: 0.6rem;
+    margin: 1rem;
+}
+
+.presenter_message {
+    background-color: var(--common-light-blue);
+}
+
+.ChatMessage-username_block {
+    width: 100%;
+    font-size: 0.8rem;
+}
+
+.ChatMessage-text_block {
+    width: 100%;
+}
+
+.ChatMessage-date_block {
+    font-size: 0.4rem;
+    text-align: right;
+}
