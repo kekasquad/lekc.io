@@ -55,7 +55,7 @@ export default class StreamViewer extends React.Component<IProps, IState> {
         if (this.state.stream) {
             await this.state.stream.startViewer();
         } else {
-            const socket: Socket = this.state.socket || io(`wss://localhost:4000`);
+            const socket: Socket = this.state.socket || io(`wss://192.168.1.101:4000`);
             const screenVideo: HTMLVideoElement = document.querySelector('#StreamViewer-screen_video') as HTMLVideoElement;
             const webcamVideo: HTMLVideoElement = document.querySelector('#StreamViewer-webcam_video') as HTMLVideoElement;
 
@@ -95,18 +95,18 @@ export default class StreamViewer extends React.Component<IProps, IState> {
 
     render(): JSX.Element {
         return (
-            <div className="kek">
+            <div className='StreamViewer-window_container'>
                 <NavBar currentItem={2}/>
                 <div className="StreamViewer-component">
-                    <video id='StreamViewer-screen_video' autoPlay={true} poster={streamScreenPlaceholder}></video>
-                    <div>
-                        <video id='StreamViewer-webcam_video' autoPlay={true} poster={streamWebcamPlaceholder}></video>
-                        {
-                            this.state.stream && this.state.socket ?
-                                <div className='StreamViewer-chat_block'>
-                                    <Chat socket={this.state.socket} streamId={this.state.streamIdInputValue}/>
-                                </div> : ''
-                        }
+                    <div className='StreamPresenter-main_area'>
+                        <video id='StreamViewer-screen_video' autoPlay={true}></video>
+                        <div className='StreamViewer-side_block'>
+                            <video id='StreamViewer-webcam_video' autoPlay={true}></video>
+                            <div className='StreamViewer-chat_block'>
+                                { this.state.stream && this.state.socket ?
+                                    <Chat socket={this.state.socket} streamId={this.state.streamIdInputValue}/> : '' }
+                            </div>
+                        </div>
                     </div>
 
                     <div className='StreamViewer-control_buttons_group'>
