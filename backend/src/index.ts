@@ -52,24 +52,6 @@ mongoose.connect(mongoUri, {
     passport.serializeUser(User.serializeUser());
     passport.deserializeUser(User.deserializeUser());
 
-    const register = (req: any, res: any, next: any) => {
-        console.log('THE ONLY ONE REGISTER ON THIS WILD SERVER');
-        const user = new User({
-            login: req.body.login,
-            name: req.body.name
-        });
-        User.register(user, req.body.password, (error: Error, user: any) => {
-            if (error) {
-                console.log('YOU ARE A WEAKLING');
-                next(error);
-                return;
-            }
-            console.log('YOU KINDA GOOD, ENTER');
-            req.user = user;
-            next();
-        });
-    };
-
     passport.use(new PassportJwt.Strategy(
         {
             jwtFromRequest: PassportJwt.ExtractJwt.fromAuthHeaderAsBearerToken(),
@@ -90,32 +72,60 @@ mongoose.connect(mongoUri, {
         }
     ));
 
-    const signJWTForUser = (req: any, res: any) => {
-        console.log('ARE YOU HERE?');
-        const user = req.user;
-        const token = JWT.sign(
-            {
-                login: user.login
-            },
-            jwtConfig.secret,
-            {
-                expiresIn: jwtConfig.expiresIn,
-                subject: user._id.toString()
-            }
-        );
-        res.json({ token });
-    };
-
     router.post(
         '/register',
-        register,
-        signJWTForUser
+        (req, res, next) => {
+            console.log('THE ONLY ONE REGISTER ON THIS WILD SERVER');
+            const user = new User({
+                login: req.body.login,
+                name: req.body.name
+            });
+            User.register(user, req.body.password, (error: Error, user: any) => {
+                if (error) {
+                    console.log('YOU ARE A WEAKLING');
+                    next(error);
+                    return;
+                }
+                console.log('YOU KINDA GOOD, ENTER');
+                req.user = user;
+                next();
+            });
+        },
+        (req, res) => {
+            console.log('ARE YOU HERE?');
+            const user = req.user;
+            const token = JWT.sign(
+                {
+                    login: user.login
+                },
+                jwtConfig.secret,
+                {
+                    expiresIn: jwtConfig.expiresIn,
+                    subject: user._id.toString()
+                }
+            );
+            res.json({ token });
+        }
     );
 
     router.post(
         '/login',
         passport.authenticate('local', { session: false }),
-        signJWTForUser
+        (req, res) => {
+            console.log('ARE YOU HERE?');
+            const user = req.user;
+            const token = JWT.sign(
+                {
+                    login: user.login
+                },
+                jwtConfig.secret,
+                {
+                    expiresIn: jwtConfig.expiresIn,
+                    subject: user._id.toString()
+                }
+            );
+            res.json({ token });
+        }
     );
     
     router.get(
@@ -135,6 +145,8 @@ mongoose.connect(mongoUri, {
             }
         }
     );
+    
+    app.use('/', router);
     
     app.get('/', (req, res) => {
         res.send('Hello World!')
