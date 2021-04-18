@@ -8,12 +8,14 @@ import https from 'https';
 import ws from 'ws';
 
 import passport from 'passport';
-import local from 'passport-local';
+import PassportJwt from 'passport-jwt';
+import JWT from 'jsonwebtoken';
 
 import mongoose from 'mongoose';
-import redis from 'connect-redis';
+import redisConnect from 'connect-redis';
+import redis from 'redis';
 
-import { certDir, PORT, redisConfig, mongoUri } from './config/constants';
+import { certDir, PORT, redisConfig, mongoUri, jwtConfig } from './config/constants';
 import { stop, nextUniqueId, startPresenter, startViewer, onIceCandidate } from './ws-utils';
 import User from './models/User';
 
@@ -22,10 +24,15 @@ const options = {
   key:  fs.readFileSync(path.resolve(certDir, 'key.pem')),
 };
 
-mongoose.connect(mongoUri, { useNewUrlParser: true, useUnifiedTopology: true }).then(() => {
-    const RedisStore = redis(session);
-    const LocalStrategy = local.Strategy;
+mongoose.connect(mongoUri, { 
+    useNewUrlParser: true, 
+    useUnifiedTopology: true,
+    authSource: 'admin'
+}).then(() => {
+    const RedisStore = redisConnect(session);
+    const redisClient = redis.createClient(redisConfig.url);
     const app: express.Express = express();
+    const router = express.Router();
     
     app.use(express.json());
     app.use(cors());
@@ -33,30 +40,101 @@ mongoose.connect(mongoUri, { useNewUrlParser: true, useUnifiedTopology: true }).
     app.use(passport.session());
     app.use(session({
         store: new RedisStore({
-            url: redisConfig.url
+            client: redisClient
         }),
         secret: redisConfig.secret,
         resave: false,
         saveUninitialized: false
     }));
+    
+    passport.use(User.createStrategy());
+    
+    passport.serializeUser(User.serializeUser());
+    passport.deserializeUser(User.deserializeUser());
 
-    passport.use(new LocalStrategy(
-        (username, password, done) => {
-          User.findOne({ username: username }, (err: Error, user: any) => {
-            if (err) { return done(err); }
-            if (!user) { return done(null, false); }
-            if (!user.verifyPassword(password)) { return done(null, false); }
-            return done(null, user);
-          });
+    const register = (req: any, res: any, next: any) => {
+        console.log('THE ONLY ONE REGISTER ON THIS WILD SERVER');
+        const user = new User({
+            login: req.body.login,
+            name: req.body.name
+        });
+        User.register(user, req.body.password, (error: Error, user: any) => {
+            if (error) {
+                console.log('YOU ARE A WEAKLING');
+                next(error);
+                return;
+            }
+            console.log('YOU KINDA GOOD, ENTER');
+            req.user = user;
+            next();
+        });
+    };
+
+    passport.use(new PassportJwt.Strategy(
+        {
+            jwtFromRequest: PassportJwt.ExtractJwt.fromAuthHeaderAsBearerToken(),
+            secretOrKey: jwtConfig.secret,
+            algorithms: [jwtConfig.algorihtm]
+        },
+        (payload: any, done: any) => {
+            User.findById(payload.sub)
+                .then(user => {
+                    if (user) {
+                        done(null, user);
+                    } else {
+                        done(null, false);
+                    }
+                }).catch(error => {
+                    done(error, false);
+                });
         }
     ));
 
-    app.post('/login',
-        passport.authenticate('local', { failureRedirect: '/login' }),
+    const signJWTForUser = (req: any, res: any) => {
+        console.log('ARE YOU HERE?');
+        const user = req.user;
+        const token = JWT.sign(
+            {
+                login: user.login
+            },
+            jwtConfig.secret,
+            {
+                expiresIn: jwtConfig.expiresIn,
+                subject: user._id.toString()
+            }
+        );
+        res.json({ token });
+    };
+
+    router.post(
+        '/register',
+        register,
+        signJWTForUser
+    );
+
+    router.post(
+        '/login',
+        passport.authenticate('local', { session: false }),
+        signJWTForUser
+    );
+    
+    router.get(
+        '/user', 
+        passport.authenticate('jwt', { session: false }),
         (req, res) => {
-            res.redirect('/');
+            if(req.user) {
+                return res.status(200).json({
+                    user: req.user,
+                    authenticated: true
+                });
+            } else {
+                return res.status(401).json({
+                    error: 'User is not authenticated',
+                    authenticated: false
+                });
+            }
         }
-    )
+    );
     
     app.get('/', (req, res) => {
         res.send('Hello World!')
@@ -153,6 +231,7 @@ mongoose.connect(mongoUri, { useNewUrlParser: true, useUnifiedTopology: true }).
             }
         });
     });    
-}).catch(() => {
+}).catch((error) => {
+    console.log(error);
     console.log(`Unable to connect to MongoDB on the address ${mongoUri}`);
 });

@@ -1,4 +1,5 @@
 import React from 'react';
+import { Redirect } from 'react-router-dom';
 import './Auth.css';
 import { FORM_ERROR_MESSAGES } from '../constants';
 
@@ -22,16 +23,6 @@ interface IState {
     errorText?: string;
 }
 
-async function loginUser(credentials: any) {
-    return fetch('http://localhost:4000/login', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(credentials)
-    }).then(data => data.json())
-}
-
 export default class Auth extends React.Component<IProps, IState> {
 
     constructor(props: any) {
@@ -48,6 +39,39 @@ export default class Auth extends React.Component<IProps, IState> {
 
         this.handleInputChange = this.handleInputChange.bind(this);
         this.submitForm = this.submitForm.bind(this);
+    }
+    
+    login = (data: any) => {
+        fetch('https://localhost:4000/login', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data)
+        }).then((response) => {
+            response.json();
+        }).then((token: any) => {
+            this.props.setToken(token.token);
+        }).catch((err) => {
+            console.log('Error logging in.', err);
+        });
+    }
+
+    register = (data: any) => {
+        fetch('https://localhost:4000/register', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data)
+        }).then(response => {
+            if (response.status === 200) {
+                console.log('Succesfully registered user!');
+            }
+        })
+        .catch((err) => {
+            console.log('Error registering user.', err);
+        });
     }
 
     flushControls(): void {
@@ -92,17 +116,20 @@ export default class Auth extends React.Component<IProps, IState> {
             return;
         }
         if (this.state.loginMode) {
+            const login = this.state.login;
+            const password = this.state.password;
+            this.login({
+                login,
+                password
+            });
+        } else {
+            const login = this.state.login;
             const name = this.state.name;
             const password = this.state.password;
-            loginUser({
+            this.register({
+                login,
                 name,
                 password
-            }).then(token => {
-                console.log(token);
-                this.props.setToken(token);
-            }).catch(error => {
-                console.log(error);
-                //TODO: some state changes based on error
             });
         }
     }
@@ -156,7 +183,7 @@ export default class Auth extends React.Component<IProps, IState> {
                         value={this.state.repeatPassword}
                         onChange={this.handleInputChange}/>
                 </div>
-                <button className='Auth-form_submit_button common_button'>Sign up</button>
+                <button className='Auth-form_submit_button common_button' onClick={this.submitForm}>Sign up</button>
             </form>
         );
     }
