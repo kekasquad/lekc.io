@@ -14,12 +14,12 @@ function App() {
     <div className="App">
       <Switch>
         <Route path="/login">
-			<Auth setToken={setToken}/> 
-		</Route>
-        <PrivateRoute path="/search" component={Search} isAuthenticated={token}/>
-        <PrivateRoute path="/stream-presenter" component={StreamPresenter} isAuthenticated={token}/>
-        <PrivateRoute path="/stream-viewer" component={StreamViewer} isAuthenticated={token}/>
-        <PrivateRoute path="/profile" component={NavBar} isAuthenticated={token}/>
+			    <Auth setToken={setToken}/> 
+		    </Route>
+        <PrivateRoute path="/search" component={Search} isAuthenticated={!!token}/>
+        <PrivateRoute path="/stream-presenter" component={StreamPresenter} isAuthenticated={!!token}/>
+        <PrivateRoute path="/stream-viewer" component={StreamViewer} isAuthenticated={!!token}/>
+        <PrivateRoute path="/profile" component={NavBar} isAuthenticated={!!token}/>
         <Redirect from="/" to="/search"/>
       </Switch>
       </div>
@@ -27,11 +27,17 @@ function App() {
 }
 
 const PrivateRoute = ({component, isAuthenticated, ...rest}: any) => {
-	const routeComponent = (props: any) => (
-		isAuthenticated
-			? React.createElement(component, props)
-			: <Redirect to={{pathname: '/login'}}/>
-	);
+	const routeComponent = (props: any) => {
+    const from = "?from=" + props.location.pathname;
+    return (
+      isAuthenticated
+        ? React.createElement(component, props)
+        : <Redirect to={{
+          pathname: '/login',
+          search: from
+        }}/>
+    );
+  } 
 	return <Route {...rest} render={routeComponent}/>;
 };
 

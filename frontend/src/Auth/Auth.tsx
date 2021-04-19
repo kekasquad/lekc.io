@@ -6,9 +6,15 @@ import { FORM_ERROR_MESSAGES } from '../constants';
 interface IProps {
     loginMode?: boolean;
     setToken?: any;
+    location?: {
+        search?: {
+            from?: string
+        }
+    }
 }
 
 interface IState {
+    redirectToReferrer?: boolean; 
     loginMode?: boolean;
     login?: string;
     password?: string;
@@ -27,7 +33,9 @@ export default class Auth extends React.Component<IProps, IState> {
 
     constructor(props: any) {
         super(props);
+        console.log(props);
         this.state = {
+            redirectToReferrer: false,
             loginMode: props.loginMode === false ? false : true,
             login: '',
             name: '',
@@ -41,36 +49,37 @@ export default class Auth extends React.Component<IProps, IState> {
         this.submitForm = this.submitForm.bind(this);
     }
     
-    login = (data: any) => {
+    login = async (data: any) => {
         fetch('https://localhost:4000/login', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify(data)
-        }).then((response) => {
-            response.json();
+        }).then((data) => {
+            return data.json();
         }).then((token: any) => {
             this.props.setToken(token.token);
+            this.setState({ redirectToReferrer: true });
         }).catch((err) => {
             console.log('Error logging in.', err);
         });
     }
 
-    register = (data: any) => {
+    register = async (data: any) => {
         fetch('https://localhost:4000/register', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify(data)
-        }).then(response => {
-            if (response.status === 200) {
-                console.log('Succesfully registered user!');
-            }
-        })
-        .catch((err) => {
-            console.log('Error registering user.', err);
+        }).then(data => {
+            return data.json();
+        }).then((token: any) => {
+            this.props.setToken(token.token);
+            this.setState({ redirectToReferrer: true });
+        }).catch((err) => {
+            console.log('Error logging in.', err);
         });
     }
 
@@ -189,21 +198,27 @@ export default class Auth extends React.Component<IProps, IState> {
     }
 
     render(): JSX.Element {
-      return (
-        <div className='Auth-component'>
-          <h1>Lekc.io</h1>
-          <div className='Auth-form_container'>
+        if (this.state.redirectToReferrer) {
+            const redirectTo = new URLSearchParams(window.location.search).get('from') || '/';
+            return (
+				<Redirect to={redirectTo}/>
+			);
+        }
+        return (
+          <div className='Auth-component'>
+            <h1>Lekc.io</h1>
+            <div className='Auth-form_container'>
               <div className='Auth-form_control_block'>
-                  <div className={ 'Auth-form_control_button' + (this.state.loginMode ? ' active' : '')} onClick={ () => this.changeMode(true) }>
-                      <span>Login</span>
-                  </div>
-                  <div className={ 'Auth-form_control_button' + (!this.state.loginMode ? ' active' : '') } onClick={ () => this.changeMode(false) }>
-                      <span>Sign up</span>
-                  </div>
+                <div className={ 'Auth-form_control_button' + (this.state.loginMode ? ' active' : '')} onClick={ () => this.changeMode(true) }>
+                  <span>Login</span>
+                </div>
+                <div className={ 'Auth-form_control_button' + (!this.state.loginMode ? ' active' : '') } onClick={ () => this.changeMode(false) }>
+                  <span>Sign up</span>
+                </div>
               </div>
               {this.state.loginMode ? this.loginForm() : this.signupForm() }
+            </div>
           </div>
-        </div>
       );
     }
 }
