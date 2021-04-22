@@ -75,24 +75,20 @@ mongoose.connect(mongoUri, {
     router.post(
         '/register',
         (req, res, next) => {
-            console.log('THE ONLY ONE REGISTER ON THIS WILD SERVER');
             const user = new User({
                 login: req.body.login,
                 name: req.body.name
             });
             User.register(user, req.body.password, (error: Error, user: any) => {
                 if (error) {
-                    console.log('YOU ARE A WEAKLING');
                     next(error);
                     return;
                 }
-                console.log('YOU KINDA GOOD, ENTER');
                 req.user = user;
                 next();
             });
         },
         (req, res) => {
-            console.log('ARE YOU HERE?');
             const user = req.user;
             const token = JWT.sign(
                 {
@@ -112,7 +108,6 @@ mongoose.connect(mongoUri, {
         '/login',
         passport.authenticate('local', { session: false }),
         (req, res) => {
-            console.log('ARE YOU HERE?');
             const user = req.user;
             const token = JWT.sign(
                 {
@@ -134,17 +129,82 @@ mongoose.connect(mongoUri, {
         (req, res) => {
             if(req.user) {
                 return res.status(200).json({
-                    user: req.user,
-                    authenticated: true
+                    user: req.user
                 });
             } else {
                 return res.status(401).json({
-                    error: 'User is not authenticated',
-                    authenticated: false
+                    error: 'User is not authenticated'
                 });
             }
         }
     );
+
+    router.put(
+        '/user',
+        passport.authenticate('jwt', { session: false }),
+        (req, res) => {
+            if(req.user) {
+                var isError = false
+                if (req.body.oldPassword && req.body.newPassword) {
+                    console.log('changing');
+                    req.user.changePassword(req.body.oldPassword, req.body.newPassword, (error: Error, user: any) => {
+                        if (error) {
+                            isError = true;
+                            console.log(error);
+                            return res.status(500).json({
+                                error: 'Couldn\'t change password'
+                            });
+                        }
+                    });
+                }
+                if (req.body.avatar) {
+                    User.updateOne({ login: req.user.login }, { avatar: req.body.avatar }).catch((error: Error) => {
+                        isError = true;
+                        return res.status(500).json({
+                            error: 'There is no such user'
+                        });
+                    });
+                }
+                if (isError) {
+                    User.findOne({ login: req.user.login }).then((user) => {
+                        return res.status(200).json({
+                            user: user
+                        });
+                    }).catch((error: Error) => {
+                        return res.status(500).json({
+                            error: 'There is no such user'
+                        });
+                    });
+                }
+            } else {
+                return res.status(401).json({
+                    error: 'User is not authenticated'
+                });
+            }
+        }
+    )
+
+    router.delete(
+        '/user',
+        passport.authenticate('jwt', { session: false }),
+        (req, res) => {
+            if(req.user) {
+                User.deleteOne({ login: req.user.login }).then(() => {
+                    return res.status(200).json({
+                        status: "OK"
+                    });
+                }).catch((error: Error) => {
+                    return res.status(500).json({
+                        error: 'There is no such user'
+                    });
+                });
+            } else {
+                return res.status(401).json({
+                    error: 'User is not authenticated'
+                });
+            }
+        }
+    )
     
     app.use('/', router);
     
