@@ -33,7 +33,6 @@ export default class Auth extends React.Component<IProps, IState> {
 
     constructor(props: any) {
         super(props);
-        console.log(props);
         this.state = {
             redirectToReferrer: false,
             loginMode: props.loginMode === false ? false : true,

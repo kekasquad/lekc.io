@@ -1,6 +1,5 @@
 import cors from 'cors';
 import express from 'express';
-import session from 'express-session';
 
 import fs from 'fs';
 import path from 'path';
@@ -12,8 +11,6 @@ import PassportJwt from 'passport-jwt';
 import JWT from 'jsonwebtoken';
 
 import mongoose from 'mongoose';
-import redisConnect from 'connect-redis';
-import redis from 'redis';
 
 import { certDir, PORT, redisConfig, mongoUri, jwtConfig } from './config/constants';
 import { stop, nextUniqueId, startPresenter, startViewer, onIceCandidate } from './ws-utils';
@@ -29,23 +26,12 @@ mongoose.connect(mongoUri, {
     useUnifiedTopology: true,
     authSource: 'admin'
 }).then(() => {
-    const RedisStore = redisConnect(session);
-    const redisClient = redis.createClient(redisConfig.url);
     const app: express.Express = express();
     const router = express.Router();
     
     app.use(express.json());
     app.use(cors());
     app.use(passport.initialize());
-    app.use(passport.session());
-    app.use(session({
-        store: new RedisStore({
-            client: redisClient
-        }),
-        secret: redisConfig.secret,
-        resave: false,
-        saveUninitialized: false
-    }));
     
     passport.use(User.createStrategy());
     
