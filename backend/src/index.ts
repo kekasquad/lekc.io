@@ -137,7 +137,7 @@ mongoose.connect(mongoUri, {
                         if (error) {
                             isError = true;
                             console.log(error);
-                            return res.status(500).json({
+                            return res.status(400).json({
                                 error: 'Couldn\'t change password'
                             });
                         }
@@ -146,7 +146,7 @@ mongoose.connect(mongoUri, {
                 if (req.body.avatar) {
                     User.updateOne({ login: req.user.login }, { avatar: req.body.avatar }).catch((error: Error) => {
                         isError = true;
-                        return res.status(500).json({
+                        return res.status(404).json({
                             error: 'There is no such user'
                         });
                     });
@@ -157,7 +157,7 @@ mongoose.connect(mongoUri, {
                             user: user
                         });
                     }).catch((error: Error) => {
-                        return res.status(500).json({
+                        return res.status(404).json({
                             error: 'There is no such user'
                         });
                     });
@@ -180,7 +180,7 @@ mongoose.connect(mongoUri, {
                         status: "OK"
                     });
                 }).catch((error: Error) => {
-                    return res.status(500).json({
+                    return res.status(404).json({
                         error: 'There is no such user'
                     });
                 });
