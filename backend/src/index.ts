@@ -8,12 +8,12 @@ import path from 'path';
 import passport from 'passport';
 import PassportJwt from 'passport-jwt';
 import { Server, Socket } from 'socket.io';
-import { certDir, PORT, redisConfig, mongoUri, jwtConfig } from './config/constants';
+import { certDir, PORT, mongoUri, jwtConfig } from './config/constants';
 import {
     viewers, streamRooms, stopStream, stopViewer, startPresenter,
     startViewer, onPresenterIceCandidate, onViewerIceCandidate
 } from './ws-utils';
-import User from './models/User';
+import { User, UserModel } from './models/User';
 
 const options = {
     cert: fs.readFileSync(path.resolve(certDir, 'cert.pem')),
@@ -23,6 +23,7 @@ const options = {
 mongoose.connect(mongoUri, {
     useNewUrlParser: true,
     useUnifiedTopology: true,
+    useCreateIndex: true,
     authSource: 'admin'
 }).then(() => {
     const app: express.Express = express();
@@ -32,10 +33,10 @@ mongoose.connect(mongoUri, {
     app.use(cors());
     app.use(passport.initialize());
 
-    passport.use(User.createStrategy());
+    passport.use(UserModel.createStrategy());
 
-    passport.serializeUser(User.serializeUser());
-    passport.deserializeUser(User.deserializeUser());
+    passport.serializeUser((user: Express.User, done: (err: any, id?: unknown) => void) => { UserModel.serializeUser()(user as typeof UserModel, done) });
+    passport.deserializeUser(UserModel.deserializeUser());
 
     passport.use(new PassportJwt.Strategy(
         {
@@ -44,7 +45,7 @@ mongoose.connect(mongoUri, {
             algorithms: [jwtConfig.algorihtm]
         },
         (payload: any, done: any) => {
-            User.findById(payload.sub)
+            UserModel.findById(payload.sub)
                 .then(user => {
                     if (user) {
                         done(null, user);
@@ -60,11 +61,11 @@ mongoose.connect(mongoUri, {
     router.post(
         '/register',
         (req, res, next) => {
-            const user = new User({
+            const user = new UserModel({
                 login: req.body.login,
                 name: req.body.name
             });
-            User.register(user, req.body.password, (error: Error, user: any) => {
+            UserModel.register(user, req.body.password, (error: Error, user: any) => {
                 if (error) {
                     next(error);
                     return;
@@ -74,7 +75,7 @@ mongoose.connect(mongoUri, {
             });
         },
         (req, res) => {
-            const user = req.user;
+            const user = req.user as User;
             const token = JWT.sign(
                 {
                     login: user.login
@@ -93,7 +94,7 @@ mongoose.connect(mongoUri, {
         '/login',
         passport.authenticate('local', { session: false }),
         (req, res) => {
-            const user = req.user;
+            const user = req.user as User;
             const token = JWT.sign(
                 {
                     login: user.login
@@ -112,7 +113,7 @@ mongoose.connect(mongoUri, {
         '/user',
         passport.authenticate('jwt', { session: false }),
         (req, res) => {
-            if(req.user) {
+            if (req.user) {
                 return res.status(200).json({
                     user: req.user
                 });
@@ -128,11 +129,12 @@ mongoose.connect(mongoUri, {
         '/user',
         passport.authenticate('jwt', { session: false }),
         (req, res) => {
-            if(req.user) {
+            if (req.user) {
+                const user = req.user as User;
                 let isError = false;
                 if (req.body.oldPassword && req.body.newPassword) {
                     console.log('changing');
-                    req.user.changePassword(req.body.oldPassword, req.body.newPassword, (error: Error, user: any) => {
+                    user.changePassword(req.body.oldPassword, req.body.newPassword, (error: Error, updatedUser: any) => {
                         if (error) {
                             isError = true;
                             console.log(error);
@@ -143,7 +145,7 @@ mongoose.connect(mongoUri, {
                     });
                 }
                 if (req.body.avatar) {
-                    User.updateOne({ login: req.user.login }, { avatar: req.body.avatar }).catch((error: Error) => {
+                    UserModel.updateOne({ login: user.login }, { avatar: req.body.avatar }).catch((error: Error) => {
                         isError = true;
                         return res.status(404).json({
                             error: 'There is no such user'
@@ -151,7 +153,7 @@ mongoose.connect(mongoUri, {
                     });
                 }
                 if (isError) {
-                    User.findOne({ login: req.user.login }).then((user) => {
+                    UserModel.findOne({ login: user.login }).then((user) => {
                         return res.status(200).json({
                             user: user
                         });
@@ -174,7 +176,8 @@ mongoose.connect(mongoUri, {
         passport.authenticate('jwt', { session: false }),
         (req, res) => {
             if(req.user) {
-                User.deleteOne({ login: req.user.login }).then(() => {
+                const user = req.user as User;
+                UserModel.deleteOne({ login: user.login }).then(() => {
                     return res.status(200).json({
                         status: "OK"
                     });
@@ -197,9 +200,7 @@ mongoose.connect(mongoUri, {
         res.send('Hello World!')
     });
 
-    const server: https.Server = https.createServer(options, app).listen(PORT, (): void => {
-        console.log(`Server is listening on port ${PORT}`);
-    });
+    const server: https.Server = https.createServer(options, app);
 
     const wsServer: Server = new Server(server, {
         cors: {
