@@ -33,7 +33,7 @@ export default class NavBar extends React.Component<IProps, IState> {
     super(props);
     this.state = {
       currentItem: props.currentItem,
-      joinMode: props.joinMode === true ? true : false,
+      joinMode: props.joinMode === true,
       roomID: '',
       roomPassword: '',
       fieldsErrors: {},
@@ -70,7 +70,7 @@ export default class NavBar extends React.Component<IProps, IState> {
       return false;
   }
 
-  submitForm(event: React.MouseEvent): void {
+  submitForm(): void {
       // event.preventDefault();
       // if (!this.validateFormFields()) {
       //     this.setState({ errorText: FORM_ERROR_MESSAGES.incorrectData });
@@ -130,6 +130,7 @@ export default class NavBar extends React.Component<IProps, IState> {
         </div>
         <Modal
           isOpen={ this.state.joinMode as boolean }
+          appElement={document.getElementById('root') as HTMLElement}
           onRequestClose={ () => this.changeMode(false) }
           contentLabel="Join Room Form"
           className="modal_join"
