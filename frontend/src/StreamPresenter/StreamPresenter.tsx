@@ -1,4 +1,5 @@
 import React from 'react';
+import { io, Socket } from 'socket.io-client';
 import './StreamPresenter.css';
 import NavBar from '../NavBar/NavBar';
 import Stream from '../lib/stream';
@@ -7,14 +8,17 @@ import streamWebcamPlaceholder from '../assets/stream-webcam-placeholder.png';
 import webcamTurnButton from '../assets/webcam-turn-button.png';
 import screenTurnButton from '../assets/screen-turn-button.png';
 import microTurnButton from '../assets/micro-turn-button.png';
+import viewersIcon from "../assets/viewers-icon.png";
 
 interface IProps {
     [key: string]: any
 }
 
 interface IState {
+    streamId: string;
     stream: Stream | null;
-    ws: WebSocket | null;
+    streamViewersCount: number;
+    socket: Socket | null;
     screenVideo: HTMLVideoElement | null;
     webcamVideo: HTMLVideoElement | null;
     screenEnabled: boolean;
@@ -28,8 +32,10 @@ export default class StreamPresenter extends React.Component<IProps, IState> {
         super(props);
 
         this.state = {
+            streamId: '',
             stream: null,
-            ws: null,
+            streamViewersCount: 0,
+            socket: null,
             screenVideo: null,
             webcamVideo: null,
             screenEnabled: true,
@@ -45,7 +51,7 @@ export default class StreamPresenter extends React.Component<IProps, IState> {
     }
 
     componentWillUnmount() {
-        this.state.ws?.close();
+        this.state.socket?.disconnect();
         this.state.stream?.stop();
     }
 
@@ -53,30 +59,43 @@ export default class StreamPresenter extends React.Component<IProps, IState> {
         if (this.state.stream) {
             await this.state.stream.startPresenter();
         } else {
-            const ws = this.state.ws || new WebSocket(`wss://localhost:4000/one2many`);
+            const socket: Socket = this.state.socket || io(`wss://localhost:4000`);
             const screenVideo: HTMLVideoElement =
                 document.querySelector('#StreamPresenter-screen_video') as HTMLVideoElement;
             const webcamVideo: HTMLVideoElement =
                 document.querySelector('#StreamPresenter-webcam_video') as HTMLVideoElement;
 
-            if (screenVideo && webcamVideo) {
-                this.setState(
-                    { ws, stream: new Stream(ws, screenVideo, webcamVideo), screenVideo, webcamVideo },
-                    async () => {
-                        await this.state.stream?.startPresenter()
-                    }
-                );
-            } else {
-                console.error('Cannot start stream');
-            }
+            socket.on('connect', () => {
+                if (screenVideo && webcamVideo) {
+                    this.setState(
+                        {
+                            streamId: socket.id,
+                            socket,
+                            stream: new Stream(socket.id, socket, screenVideo, webcamVideo),
+                            screenVideo,
+                            webcamVideo
+                        },
+                        async () => {
+                            console.log(this.state);
+                            await this.state.stream?.startPresenter()
+                        }
+                    );
+                } else {
+                    console.error('Cannot start stream');
+                }
+            });
+
+            socket.on('viewersCount', (viewersCount: number) => {
+                this.setState({ streamViewersCount: viewersCount });
+            });
         }
     }
 
     stop(): void {
         if (this.state.stream) {
             this.state.stream.stop();
-            this.state.ws?.close();
-            this.setState({ stream: null, ws: null });
+            this.state.socket?.disconnect();
+            this.setState({ stream: null, socket: null, streamId: '', });
         } else {
             console.error('No active stream');
         }
@@ -144,8 +163,21 @@ export default class StreamPresenter extends React.Component<IProps, IState> {
                                     <img src={microTurnButton} alt='Turn on/off micro'/>
                                 </button> : ''
                         }
+                        {
+                            this.state.stream ?
+                                <div className='StreamPresenter-stream_id_block'>
+                                    <span>Stream ID: </span>
+                                    <input type='text' value={this.state.streamId} readOnly={true} />
+                                </div> : ''
+                        }
+                        {
+                            this.state.stream ?
+                                <div className='StreamPresenter-viewers_count_block'>
+                                    <img className='StreamPresenter-viewers_icon' src={viewersIcon}/>
+                                    <span>{ this.state.streamViewersCount }</span>
+                                </div> : ''
+                        }
                     </div>
-
                 </div>
             </div>
         );
