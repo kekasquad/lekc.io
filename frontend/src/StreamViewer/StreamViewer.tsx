@@ -121,6 +121,16 @@ class StreamViewer extends React.Component<IProps, IState> {
                     </div>
 
                     <div className='StreamViewer-control_buttons_group'>
+                        {
+                            this.state.stream ?
+                                <button id='StreamViewer-start_stop_button'
+                                        className='common_button red_button'
+                                        onClick={ this.stop }>Stop watching</button> :
+                                <button id='StreamViewer-start_stop_button'
+                                        disabled={!this.state.streamIdInputValue}
+                                        className='common_button'
+                                        onClick={ this.startViewer }>Start watching</button>
+                        }
                         <div className='StreamViewer-stream_id_block'>
                             <span>Stream ID: <b>{this.state.stream ? this.state.streamIdInputValue : ''}</b></span>
                             {
@@ -130,14 +140,6 @@ class StreamViewer extends React.Component<IProps, IState> {
                                            readOnly={!!this.state.stream}/> : ''
                             }
                         </div>
-                        {
-                            this.state.stream ?
-                                <button className='common_button red_button'
-                                        onClick={ this.stop }>Stop watching</button> :
-                                <button disabled={!this.state.streamIdInputValue}
-                                        className='common_button'
-                                        onClick={ this.startViewer }>Start watching</button>
-                        }
                         {
                             this.state.stream ?
                                 <div className='StreamViewer-viewers_count_block'>

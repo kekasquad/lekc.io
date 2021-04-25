@@ -327,7 +327,7 @@ export function onChatMessage(socket: Socket, streamId: string, userName: string
 
 	const viewerStream: string | undefined = viewers.get(socket.id);
 	if (viewerStream && viewerStream !== streamId || !viewerStream && socket.id !== streamId) { return; }
-	wsServer.in(streamId).emit('receiveChatMessage', streamId, userName, message, new Date());
+	wsServer.in(streamId).emit('receiveChatMessage', streamId, socket.id, userName, message, new Date());
 }
 
 async function joinRoom(stream: Stream, socket: Socket): Promise<void> {
