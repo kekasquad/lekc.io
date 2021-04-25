@@ -1,7 +1,10 @@
 import React from 'react';
 import { Socket } from 'socket.io-client';
+import { withRouter } from 'react-router';
+import { History, Location } from 'history';
 import ChatMessage from '../ChatMessage/ChatMessage';
 import './Chat.css';
+import { serverAddress } from '../constants';
 
 interface Message {
     userName: string;
@@ -13,26 +16,38 @@ interface Message {
 interface IProps {
     socket: Socket;
     streamId: string;
+    history: History;
+    location: Location;
+    match: any;
 }
 
 interface IState {
+    userName: string;
     messages: Message[];
     messageInputText: string;
-    userName: string;
 }
 
-export default class Chat extends React.Component<IProps, IState> {
+class Chat extends React.Component<IProps, IState> {
     constructor(props: IProps) {
         super(props);
 
         this.state = {
+            userName: '',
             messages: [],
-            messageInputText: '',
-            userName: ''
+            messageInputText: ''
         };
 
+        fetch(`https://${serverAddress}/user`, {
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+            }
+        })
+            .then(res => res.json())
+            .then(res => {this.setState({ userName: res.user.login })})
+            .catch(() => this.props.history.push('/login'));
+
         this.handleMessageInputChange = this.handleMessageInputChange.bind(this);
-        this.handleUserNameInputChange = this.handleUserNameInputChange.bind(this);
         this.sendMessage = this.sendMessage.bind(this);
     }
 
@@ -57,10 +72,6 @@ export default class Chat extends React.Component<IProps, IState> {
         this.setState({ messageInputText: event.target.value });
     }
 
-    handleUserNameInputChange(event: any): void {
-        this.setState({ userName: event.target.value });
-    }
-
     sendMessage(): void {
         if (!this.state.messageInputText || !this.state.userName) { return; }
         console.log('Sending message');
@@ -82,14 +93,11 @@ export default class Chat extends React.Component<IProps, IState> {
                     <button className='common_button'
                             onClick={this.sendMessage}
                             disabled={!this.state.messageInputText}>Send</button>
-                </div>
-                <div className='Chat-username_block'>
-                    <span>Username: </span>
-                    <input type='text' size={30} maxLength={128}
-                           value={this.state.userName}
-                           onChange={this.handleUserNameInputChange}/>
+                    <h3>Username: {this.state.userName}</h3>
                 </div>
             </div>
         );
     }
 }
+
+export default withRouter(Chat);

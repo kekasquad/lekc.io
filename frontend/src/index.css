@@ -40,8 +40,8 @@ code {
 }
 
 .round_button {
-  width: 55px;
-  height: 55px;
+  width: 30px;
+  height: 30px;
   border-radius: 50%;
   display: flex;
   justify-content: center;
@@ -50,8 +50,8 @@ code {
 }
 
 .round_button img {
-  width: 33px;
-  height: 33px;
+  width: 18px;
+  height: 18px;
   vertical-align: center;
 }
 

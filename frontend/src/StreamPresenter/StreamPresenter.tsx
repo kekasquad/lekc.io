@@ -160,8 +160,12 @@ class StreamPresenter extends React.Component<IProps, IState> {
                     <div className='StreamPresenter-control_buttons_group'>
                         {
                             this.state.stream ?
-                                <button className='common_button red_button' onClick={ this.stop }>Stop presenting</button> :
-                                <button className='common_button' onClick={ this.startPresenter }>Start presenting</button>
+                                <button id='StreamPresenter-start_stop_button'
+                                        className='common_button red_button'
+                                        onClick={ this.stop }>Stop presenting</button> :
+                                <button id='StreamPresenter-start_stop_button'
+                                        className='common_button'
+                                        onClick={ this.startPresenter }>Start presenting</button>
                         }
                         {
                             this.state.stream ?

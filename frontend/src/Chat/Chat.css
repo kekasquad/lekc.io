@@ -7,7 +7,7 @@
     width: 100%;
 }
 
-.Chat-input_block, .Chat-username_block {
+.Chat-input_block {
     width: 100%;
     border-top: 1px solid black;
     padding: 0.6rem;
