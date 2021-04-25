@@ -198,10 +198,6 @@ mongoose.connect(mongoUri, {
 
     app.use('/', router);
 
-    app.get('/', (req, res) => {
-        res.send('Hello World!')
-    });
-
     const server: https.Server = https.createServer(options, app);
 
     wsServer = new Server(server, {

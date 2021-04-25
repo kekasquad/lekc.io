@@ -1,7 +1,7 @@
 import React from 'react';
 import { Redirect } from 'react-router-dom';
 import './Auth.css';
-import { FORM_ERROR_MESSAGES } from '../constants';
+import { FORM_ERROR_MESSAGES, serverUrl } from '../constants';
 
 interface IProps {
     loginMode?: boolean;
@@ -48,38 +48,36 @@ export default class Auth extends React.Component<IProps, IState> {
         this.submitForm = this.submitForm.bind(this);
     }
     
-    login = async (data: any) => {
-        fetch('https://localhost:4000/login', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(data)
-        }).then((data) => {
-            return data.json();
-        }).then((token: any) => {
-            this.props.setToken(token.token);
+    async login(data: any): Promise<void> {
+        try {
+            const tokenData: any = await (await fetch(`${serverUrl}/login`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            })).json();
+            this.props.setToken(tokenData.token);
             this.setState({ redirectToReferrer: true });
-        }).catch((err) => {
+        } catch (err) {
             console.log('Error logging in.', err);
-        });
+        }
     }
 
-    register = async (data: any) => {
-        fetch('https://localhost:4000/register', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(data)
-        }).then(data => {
-            return data.json();
-        }).then((token: any) => {
-            this.props.setToken(token.token);
+     async register(data: any): Promise<void> {
+        try {
+            const tokenData: any = await (await fetch(`${serverUrl}/register`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            })).json();
+            this.props.setToken(tokenData.token);
             this.setState({ redirectToReferrer: true });
-        }).catch((err) => {
+        } catch (err) {
             console.log('Error logging in.', err);
-        });
+        }
     }
 
     flushControls(): void {
@@ -117,7 +115,7 @@ export default class Auth extends React.Component<IProps, IState> {
         return false;
     }
 
-    submitForm(event: React.MouseEvent) {
+    async submitForm(event: React.MouseEvent): Promise<void> {
         event.preventDefault();
         if (!this.validateFormFields()) {
             this.setState({ errorText: FORM_ERROR_MESSAGES.incorrectData });
@@ -126,7 +124,7 @@ export default class Auth extends React.Component<IProps, IState> {
         if (this.state.loginMode) {
             const login = this.state.login;
             const password = this.state.password;
-            this.login({
+            await this.login({
                 login,
                 password
             });
@@ -134,7 +132,7 @@ export default class Auth extends React.Component<IProps, IState> {
             const login = this.state.login;
             const name = this.state.name;
             const password = this.state.password;
-            this.register({
+            await this.register({
                 login,
                 name,
                 password
