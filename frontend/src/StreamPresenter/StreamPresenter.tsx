@@ -3,8 +3,6 @@ import { io, Socket } from 'socket.io-client';
 import './StreamPresenter.css';
 import NavBar from '../NavBar/NavBar';
 import Stream from '../lib/stream';
-import streamScreenPlaceholder from '../assets/stream-screen-placeholder.png';
-import streamWebcamPlaceholder from '../assets/stream-webcam-placeholder.png';
 import webcamTurnButton from '../assets/webcam-turn-button.png';
 import screenTurnButton from '../assets/screen-turn-button.png';
 import microTurnButton from '../assets/micro-turn-button.png';

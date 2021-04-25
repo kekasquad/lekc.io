@@ -3,8 +3,6 @@ import { io, Socket } from 'socket.io-client';
 import './StreamViewer.css';
 import NavBar from '../NavBar/NavBar';
 import Stream from '../lib/stream';
-import streamScreenPlaceholder from '../assets/stream-screen-placeholder.png';
-import streamWebcamPlaceholder from '../assets/stream-webcam-placeholder.png';
 import viewersIcon from '../assets/viewers-icon.png';
 import Chat from '../Chat/Chat';
 
