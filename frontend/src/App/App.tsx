@@ -1,4 +1,5 @@
 import React from 'react';
+import { useHistory } from 'react-router-dom';
 import './App.css';
 import Auth from '../Auth/Auth';
 import NavBar from '../NavBar/NavBar';
@@ -10,6 +11,7 @@ import useToken from './useToken';
 
 function App() {
   const { token, setToken } = useToken();
+  const history = useHistory();
   return (
     <div className="App">
       <Switch>
@@ -17,8 +19,8 @@ function App() {
 			    <Auth setToken={setToken}/> 
 		    </Route>
         <PrivateRoute path="/search" component={Search} isAuthenticated={!!token}/>
-        <PrivateRoute path="/stream-presenter" component={StreamPresenter} isAuthenticated={!!token}/>
-        <PrivateRoute path="/stream-viewer" component={StreamViewer} isAuthenticated={!!token}/>
+        <PrivateRoute path="/stream-presenter" component={StreamPresenter} isAuthenticated={!!token} history={history}/>
+        <PrivateRoute path="/stream-viewer" component={StreamViewer} isAuthenticated={!!token} history={history}/>
         <PrivateRoute path="/profile" component={NavBar} isAuthenticated={!!token}/>
         <Redirect from="/" to="/search"/>
       </Switch>
