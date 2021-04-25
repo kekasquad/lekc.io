@@ -33,7 +33,7 @@ export default class NavBar extends React.Component<IProps, IState> {
     super(props);
     this.state = {
       currentItem: props.currentItem,
-      joinMode: props.joinMode === true ? true : false,
+      joinMode: props.joinMode === true,
       roomID: '',
       roomPassword: '',
       fieldsErrors: {},
@@ -70,12 +70,16 @@ export default class NavBar extends React.Component<IProps, IState> {
       return false;
   }
 
-  submitForm(event: React.MouseEvent): void {
+  submitForm(): void {
       // event.preventDefault();
       // if (!this.validateFormFields()) {
       //     this.setState({ errorText: FORM_ERROR_MESSAGES.incorrectData });
       //     return;
       // }
+  }
+
+  signOut(): void {
+    localStorage.removeItem('token');
   }
 
   render(): JSX.Element {
@@ -116,7 +120,7 @@ export default class NavBar extends React.Component<IProps, IState> {
         </div>
         <div className="right_section">
           <Link to="/login">
-            <button className="btn_icon btn_exit_profile">
+            <button className="btn_icon btn_exit_profile" onClick={ () => this.signOut() }>
               <svg xmlns="http://www.w3.org/2000/svg" height="36" viewBox="0 0 24 24" width="36"><path d="M0 0h24v24H0V0z" fill="none"/>
                 <path d="M10.09 15.59L11.5 17l5-5-5-5-1.41 1.41L12.67 11H3v2h9.67l-2.58 2.59zM19 3H5c-1.11 0-2 .9-2 2v4h2V5h14v14H5v-4H3v4c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"/>
               </svg>
@@ -126,6 +130,7 @@ export default class NavBar extends React.Component<IProps, IState> {
         </div>
         <Modal
           isOpen={ this.state.joinMode as boolean }
+          appElement={document.getElementById('root') as HTMLElement}
           onRequestClose={ () => this.changeMode(false) }
           contentLabel="Join Room Form"
           className="modal_join"
