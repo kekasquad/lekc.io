@@ -1,12 +1,20 @@
 import React from 'react';
+import { Redirect } from 'react-router-dom';
 import './Auth.css';
 import { FORM_ERROR_MESSAGES } from '../constants';
 
 interface IProps {
     loginMode?: boolean;
+    setToken?: any;
+    location?: {
+        search?: {
+            from?: string
+        }
+    }
 }
 
 interface IState {
+    redirectToReferrer?: boolean; 
     loginMode?: boolean;
     login?: string;
     password?: string;
@@ -21,12 +29,12 @@ interface IState {
     errorText?: string;
 }
 
-
 export default class Auth extends React.Component<IProps, IState> {
 
     constructor(props: any) {
         super(props);
         this.state = {
+            redirectToReferrer: false,
             loginMode: props.loginMode === false ? false : true,
             login: '',
             name: '',
@@ -38,6 +46,40 @@ export default class Auth extends React.Component<IProps, IState> {
 
         this.handleInputChange = this.handleInputChange.bind(this);
         this.submitForm = this.submitForm.bind(this);
+    }
+    
+    login = async (data: any) => {
+        fetch('https://localhost:4000/login', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data)
+        }).then((data) => {
+            return data.json();
+        }).then((token: any) => {
+            this.props.setToken(token.token);
+            this.setState({ redirectToReferrer: true });
+        }).catch((err) => {
+            console.log('Error logging in.', err);
+        });
+    }
+
+    register = async (data: any) => {
+        fetch('https://localhost:4000/register', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data)
+        }).then(data => {
+            return data.json();
+        }).then((token: any) => {
+            this.props.setToken(token.token);
+            this.setState({ redirectToReferrer: true });
+        }).catch((err) => {
+            console.log('Error logging in.', err);
+        });
     }
 
     flushControls(): void {
@@ -75,11 +117,28 @@ export default class Auth extends React.Component<IProps, IState> {
         return false;
     }
 
-    submitForm(event: React.MouseEvent): void {
+    submitForm(event: React.MouseEvent) {
         event.preventDefault();
         if (!this.validateFormFields()) {
             this.setState({ errorText: FORM_ERROR_MESSAGES.incorrectData });
             return;
+        }
+        if (this.state.loginMode) {
+            const login = this.state.login;
+            const password = this.state.password;
+            this.login({
+                login,
+                password
+            });
+        } else {
+            const login = this.state.login;
+            const name = this.state.name;
+            const password = this.state.password;
+            this.register({
+                login,
+                name,
+                password
+            });
         }
     }
 
@@ -132,27 +191,33 @@ export default class Auth extends React.Component<IProps, IState> {
                         value={this.state.repeatPassword}
                         onChange={this.handleInputChange}/>
                 </div>
-                <button className='Auth-form_submit_button common_button'>Sign up</button>
+                <button className='Auth-form_submit_button common_button' onClick={this.submitForm}>Sign up</button>
             </form>
         );
     }
 
     render(): JSX.Element {
-      return (
-        <div className='Auth-component'>
-          <h1>Lekc.io</h1>
-          <div className='Auth-form_container'>
+        if (this.state.redirectToReferrer) {
+            const redirectTo = new URLSearchParams(window.location.search).get('from') || '/';
+            return (
+				<Redirect to={redirectTo}/>
+			);
+        }
+        return (
+          <div className='Auth-component'>
+            <h1>Lekc.io</h1>
+            <div className='Auth-form_container'>
               <div className='Auth-form_control_block'>
-                  <div className={ 'Auth-form_control_button' + (this.state.loginMode ? ' active' : '')} onClick={ () => this.changeMode(true) }>
-                      <span>Login</span>
-                  </div>
-                  <div className={ 'Auth-form_control_button' + (!this.state.loginMode ? ' active' : '') } onClick={ () => this.changeMode(false) }>
-                      <span>Sign up</span>
-                  </div>
+                <div className={ 'Auth-form_control_button' + (this.state.loginMode ? ' active' : '')} onClick={ () => this.changeMode(true) }>
+                  <span>Login</span>
+                </div>
+                <div className={ 'Auth-form_control_button' + (!this.state.loginMode ? ' active' : '') } onClick={ () => this.changeMode(false) }>
+                  <span>Sign up</span>
+                </div>
               </div>
               {this.state.loginMode ? this.loginForm() : this.signupForm() }
+            </div>
           </div>
-        </div>
       );
     }
 }

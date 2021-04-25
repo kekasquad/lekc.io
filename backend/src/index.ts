@@ -1,105 +1,261 @@
+import cors from 'cors';
 import express from 'express';
 import fs from 'fs';
-import path from 'path';
 import https from 'https';
-import ws from 'ws';
-import { certDir, PORT } from './config/constants';
-import { stop, nextUniqueId, startPresenter, startViewer, onIceCandidate } from './ws-utils';
+import JWT from 'jsonwebtoken';
+import mongoose from 'mongoose';
+import path from 'path';
+import passport from 'passport';
+import PassportJwt from 'passport-jwt';
+import { Server, Socket } from 'socket.io';
+import { certDir, PORT, mongoUri, jwtConfig } from './config/constants';
+import {
+    viewers, streamRooms, stopStream, stopViewer, startPresenter,
+    startViewer, onPresenterIceCandidate, onViewerIceCandidate
+} from './ws-utils';
+import { User, UserModel } from './models/User';
 
 const options = {
-  cert: fs.readFileSync(path.resolve(certDir, 'cert.pem')),
-  key:  fs.readFileSync(path.resolve(certDir, 'key.pem')),
+    cert: fs.readFileSync(path.resolve(certDir, 'cert.pem')),
+    key:  fs.readFileSync(path.resolve(certDir, 'key.pem'))
 };
 
-const app: express.Express = express();
-app.use(express.json());
+mongoose.connect(mongoUri, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+    useCreateIndex: true,
+    authSource: 'admin'
+}).then(() => {
+    const app: express.Express = express();
+    const router = express.Router();
 
-app.get('/', (req, res) => {
-    res.send('Hello World!')
-});
+    app.use(express.json());
+    app.use(cors());
+    app.use(passport.initialize());
 
-const server: https.Server = https.createServer(options, app).listen(PORT, (): void => {
-    console.log(`Server is listening on port ${PORT}`);
-});
+    passport.use(UserModel.createStrategy());
 
-const wss: ws.Server = new ws.Server({
-    server: server,
-    path: '/one2many'
-}, () => { console.log('WS started') });
+    passport.serializeUser((user: Express.User, done: (err: any, id?: unknown) => void) => { UserModel.serializeUser()(user as typeof UserModel, done) });
+    passport.deserializeUser(UserModel.deserializeUser());
 
-wss.on('connection', function(ws: ws) {
+    passport.use(new PassportJwt.Strategy(
+        {
+            jwtFromRequest: PassportJwt.ExtractJwt.fromAuthHeaderAsBearerToken(),
+            secretOrKey: jwtConfig.secret,
+            algorithms: [jwtConfig.algorihtm]
+        },
+        (payload: any, done: any) => {
+            UserModel.findById(payload.sub)
+                .then(user => {
+                    if (user) {
+                        done(null, user);
+                    } else {
+                        done(null, false);
+                    }
+                }).catch(error => {
+                    done(error, false);
+                });
+        }
+    ));
 
-    const sessionId: string = nextUniqueId();
-    console.log('Connection received with sessionId ' + sessionId);
- 
-    ws.on('error', function(error: Error) {
-        console.log('Connection ' + sessionId + ' error' + error);
-        stop(sessionId);
-    });
- 
-    ws.on('close', function() {
-        console.log('Connection ' + sessionId + ' closed');
-        stop(sessionId);
-    });
- 
-    ws.on('message', function(_message: string) {
-        const message = JSON.parse(_message);
-        console.log('Connection ' + sessionId + ' received message ', message);
+    router.post(
+        '/register',
+        (req, res, next) => {
+            const user = new UserModel({
+                login: req.body.login,
+                name: req.body.name
+            });
+            UserModel.register(user, req.body.password, (error: Error, user: any) => {
+                if (error) {
+                    next(error);
+                    return;
+                }
+                req.user = user;
+                next();
+            });
+        },
+        (req, res) => {
+            const user = req.user as User;
+            const token = JWT.sign(
+                {
+                    login: user.login
+                },
+                jwtConfig.secret,
+                {
+                    expiresIn: jwtConfig.expiresIn,
+                    subject: user._id.toString()
+                }
+            );
+            res.json({ token });
+        }
+    );
 
-        switch (message.id) {
-            case 'presenter':
-                startPresenter(sessionId, ws, message.sdpOffer)
-                    .then((sdpAnswer: string | undefined) => {
-                        if (!sdpAnswer) {
-                            throw 'sdpAnswer is undefined';
+    router.post(
+        '/login',
+        passport.authenticate('local', { session: false }),
+        (req, res) => {
+            const user = req.user as User;
+            const token = JWT.sign(
+                {
+                    login: user.login
+                },
+                jwtConfig.secret,
+                {
+                    expiresIn: jwtConfig.expiresIn,
+                    subject: user._id.toString()
+                }
+            );
+            res.json({ token });
+        }
+    );
+
+    router.get(
+        '/user',
+        passport.authenticate('jwt', { session: false }),
+        (req, res) => {
+            if (req.user) {
+                return res.status(200).json({
+                    user: req.user
+                });
+            } else {
+                return res.status(401).json({
+                    error: 'User is not authenticated'
+                });
+            }
+        }
+    );
+
+    router.put(
+        '/user',
+        passport.authenticate('jwt', { session: false }),
+        (req, res) => {
+            if (req.user) {
+                const user = req.user as User;
+                let isError = false;
+                if (req.body.oldPassword && req.body.newPassword) {
+                    console.log('changing');
+                    user.changePassword(req.body.oldPassword, req.body.newPassword, (error: Error, updatedUser: any) => {
+                        if (error) {
+                            isError = true;
+                            console.log(error);
+                            return res.status(400).json({
+                                error: 'Couldn\'t change password'
+                            });
                         }
-                        ws.send(JSON.stringify({
-                            id: 'presenterResponse',
-                            response: 'accepted',
-                            sdpAnswer: sdpAnswer
-                        }));
-                    })
-                    .catch((error: string) => {
-                        ws.send(JSON.stringify({
-                            id: 'presenterResponse',
-                            response: 'rejected',
-                            message: error
-                        }));
                     });
-                break;
-    
-            case 'viewer':
-                startViewer(sessionId, ws, message.sdpOffer)
-                    .then((sdpAnswer: string | undefined) => {
-                        ws.send(JSON.stringify({
-                            id: 'viewerResponse',
-                            response: 'accepted',
-                            sdpAnswer: sdpAnswer
-                        }));
-                    })
-                    .catch((error: any) => {
-                        ws.send(JSON.stringify({
-                            id: 'viewerResponse',
-                            response: 'rejected',
-                            message: error
-                        }));
-                    })
-                break;
-    
-            case 'stop':
-                stop(sessionId);
-                break;
-    
-            case 'onIceCandidate':
-                onIceCandidate(sessionId, message.candidate);
-                break;
-    
-            default:
-                ws.send(JSON.stringify({
-                    id: 'error',
-                    message: 'Invalid message ' + message
-                }));
-                break;
+                }
+                if (req.body.avatar) {
+                    UserModel.updateOne({ login: user.login }, { avatar: req.body.avatar }).catch((error: Error) => {
+                        isError = true;
+                        return res.status(404).json({
+                            error: 'There is no such user'
+                        });
+                    });
+                }
+                if (isError) {
+                    UserModel.findOne({ login: user.login }).then((user) => {
+                        return res.status(200).json({
+                            user: user
+                        });
+                    }).catch((error: Error) => {
+                        return res.status(404).json({
+                            error: 'There is no such user'
+                        });
+                    });
+                }
+            } else {
+                return res.status(401).json({
+                    error: 'User is not authenticated'
+                });
+            }
+        }
+    )
+
+    router.delete(
+        '/user',
+        passport.authenticate('jwt', { session: false }),
+        (req, res) => {
+            if(req.user) {
+                const user = req.user as User;
+                UserModel.deleteOne({ login: user.login }).then(() => {
+                    return res.status(200).json({
+                        status: "OK"
+                    });
+                }).catch((error: Error) => {
+                    return res.status(404).json({
+                        error: 'There is no such user'
+                    });
+                });
+            } else {
+                return res.status(401).json({
+                    error: 'User is not authenticated'
+                });
+            }
+        }
+    )
+
+    app.use('/', router);
+
+    app.get('/', (req, res) => {
+        res.send('Hello World!')
+    });
+
+    const server: https.Server = https.createServer(options, app);
+
+    const wsServer: Server = new Server(server, {
+        cors: {
+            origin: '*'
         }
     });
+
+    wsServer.on('connection', async function(socket: Socket) {
+        console.log(`Connection received with id: ${socket.id}`);
+
+        socket.on('disconnect', async function(reason: string) {
+            console.log(`Connection ${socket.id} disconnected with reason: ${reason}`);
+            if (viewers.has(socket.id)) {
+                await stopViewer(socket.id);
+            } else if (streamRooms.has(socket.id)) {
+                await stopStream(socket.id);
+            }
+        });
+
+        socket.on('presenter', async (type: 'screen' | 'webcam', sdpOffer: string) => {
+            console.log(`Connection ${socket.id} received presenter's SDP offer with type ${type}`);
+            try {
+                const sdpAnswer: string = await startPresenter(socket, type, sdpOffer);
+                socket.emit('sdpResponse', 'accepted', type, sdpAnswer);
+            } catch (error) {
+                console.log(`Presenter's SDP response error: ${error}`);
+                await stopStream(socket.id);
+                socket.emit('sdpResponse', 'rejected', type, error);
+            }
+        });
+
+        socket.on('viewer', async (streamId: string, type: 'screen' | 'webcam', sdpOffer: string) => {
+            console.log(`Connection ${socket.id} received viewer's SDP offer with type ${type}`);
+            try {
+                const sdpAnswer: string = await startViewer(streamId, socket, type, sdpOffer);
+                socket.emit('sdpResponse', 'accepted', type, sdpAnswer);
+            } catch (error) {
+                console.log(`Viewer's SDP response error: ${error}`);
+                await stopViewer(socket.id);
+                socket.emit('sdpResponse', 'rejected', type, error);
+            }
+        });
+
+        socket.on('presenterIceCandidate', async (streamId: string, type: 'screen' | 'webcam', candidate: RTCIceCandidate) => {
+            await onPresenterIceCandidate(streamId, socket.id, type, candidate);
+        });
+
+        socket.on('viewerIceCandidate', async (streamId: string, type: 'screen' | 'webcam', candidate: RTCIceCandidate) => {
+            await onViewerIceCandidate(streamId, socket.id, type, candidate);
+        });
+    });
+    server.listen(PORT, (): void => {
+        console.log(`Server is listening on port ${PORT}`);
+    });
+}).catch((error) => {
+    console.log(error);
+    console.log(`Unable to connect to MongoDB on the address ${mongoUri}`);
 });
