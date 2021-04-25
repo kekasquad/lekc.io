@@ -5,5 +5,4 @@ export const FORM_ERROR_MESSAGES = {
     incorrectData: 'Invalid data'
 };
 
-// export const serverUrl = 'https://localhost:4000';
-export const serverUrl = 'https://192.168.1.102:4000';
+export const serverAddress = 'localhost:4000';

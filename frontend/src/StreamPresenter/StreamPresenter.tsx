@@ -1,5 +1,7 @@
 import React from 'react';
 import { io, Socket } from 'socket.io-client';
+import { withRouter } from 'react-router';
+import { History, Location } from 'history';
 import './StreamPresenter.css';
 import NavBar from '../NavBar/NavBar';
 import Stream from '../lib/stream';
@@ -8,9 +10,12 @@ import screenTurnButton from '../assets/screen-turn-button.png';
 import microTurnButton from '../assets/micro-turn-button.png';
 import viewersIcon from '../assets/viewers-icon.png';
 import Chat from '../Chat/Chat';
+import { serverAddress } from '../constants';
 
 interface IProps {
-    [key: string]: any
+    history: History;
+    location: Location;
+    match: any;
 }
 
 interface IState {
@@ -25,7 +30,7 @@ interface IState {
     audioEnabled: boolean;
 }
 
-export default class StreamPresenter extends React.Component<IProps, IState> {
+class StreamPresenter extends React.Component<IProps, IState> {
 
     constructor(props: any) {
         super(props);
@@ -58,11 +63,20 @@ export default class StreamPresenter extends React.Component<IProps, IState> {
         if (this.state.stream) {
             await this.state.stream.startPresenter();
         } else {
-            const socket: Socket = this.state.socket || io(`wss://192.168.1.101:4000`);
+            const token: string | null = localStorage.getItem('token');
+            if (!token) {
+                this.props.history.push('/login');
+                return;
+            }
+            const socket: Socket = this.state.socket || io(`wss://${serverAddress}`, { query: { token } });
             const screenVideo: HTMLVideoElement =
                 document.querySelector('#StreamPresenter-screen_video') as HTMLVideoElement;
             const webcamVideo: HTMLVideoElement =
                 document.querySelector('#StreamPresenter-webcam_video') as HTMLVideoElement;
+
+            socket.on('connect_error', (err: Error) => {
+                console.log('Socket connect error', err);
+            });
 
             socket.on('connect', () => {
                 if (screenVideo && webcamVideo) {
@@ -190,3 +204,5 @@ export default class StreamPresenter extends React.Component<IProps, IState> {
         );
     }
 }
+
+export default withRouter(StreamPresenter);

@@ -1,13 +1,18 @@
 import React from 'react';
 import { io, Socket } from 'socket.io-client';
+import { withRouter } from 'react-router';
+import { History, Location } from 'history';
 import './StreamViewer.css';
 import NavBar from '../NavBar/NavBar';
 import Stream from '../lib/stream';
 import viewersIcon from '../assets/viewers-icon.png';
 import Chat from '../Chat/Chat';
+import { serverAddress } from '../constants';
 
 interface IProps {
-    [key: string]: any
+    history: History;
+    location: Location;
+    match: any;
 }
 
 interface IState {
@@ -19,8 +24,7 @@ interface IState {
     webcamVideo: HTMLVideoElement | null;
 }
 
-export default class StreamViewer extends React.Component<IProps, IState> {
-
+class StreamViewer extends React.Component<IProps, IState> {
 
     constructor(props: any) {
         super(props);
@@ -53,9 +57,18 @@ export default class StreamViewer extends React.Component<IProps, IState> {
         if (this.state.stream) {
             await this.state.stream.startViewer();
         } else {
-            const socket: Socket = this.state.socket || io(`wss://192.168.1.101:4000`);
+            const token: string | null = localStorage.getItem('token');
+            if (!token) {
+                this.props.history.push('/login');
+                return;
+            }
+            const socket: Socket = this.state.socket || io(`wss://${serverAddress}`, { query: { token } });
             const screenVideo: HTMLVideoElement = document.querySelector('#StreamViewer-screen_video') as HTMLVideoElement;
             const webcamVideo: HTMLVideoElement = document.querySelector('#StreamViewer-webcam_video') as HTMLVideoElement;
+
+            socket.on('connect_error', (err: Error) => {
+                console.log('Socket connect error', err);
+            });
 
             socket.on('connect', () => {
                 if (screenVideo && webcamVideo) {
@@ -138,3 +151,5 @@ export default class StreamViewer extends React.Component<IProps, IState> {
         );
     }
 }
+
+export default withRouter(StreamViewer);

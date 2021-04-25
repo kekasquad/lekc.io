@@ -1,7 +1,7 @@
 import React from 'react';
 import { Redirect } from 'react-router-dom';
 import './Auth.css';
-import { FORM_ERROR_MESSAGES, serverUrl } from '../constants';
+import { FORM_ERROR_MESSAGES, serverAddress } from '../constants';
 
 interface IProps {
     loginMode?: boolean;
@@ -35,7 +35,7 @@ export default class Auth extends React.Component<IProps, IState> {
         super(props);
         this.state = {
             redirectToReferrer: false,
-            loginMode: props.loginMode === false ? false : true,
+            loginMode: props.loginMode !== false,
             login: '',
             name: '',
             password: '',
@@ -50,7 +50,7 @@ export default class Auth extends React.Component<IProps, IState> {
     
     async login(data: any): Promise<void> {
         try {
-            const tokenData: any = await (await fetch(`${serverUrl}/login`, {
+            const tokenData: any = await (await fetch(`https://${serverAddress}/login`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -66,7 +66,7 @@ export default class Auth extends React.Component<IProps, IState> {
 
      async register(data: any): Promise<void> {
         try {
-            const tokenData: any = await (await fetch(`${serverUrl}/register`, {
+            const tokenData: any = await (await fetch(`https://${serverAddress}/register`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'

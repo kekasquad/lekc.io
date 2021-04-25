@@ -2,7 +2,7 @@ import cors from 'cors';
 import express from 'express';
 import fs from 'fs';
 import https from 'https';
-import JWT from 'jsonwebtoken';
+import JWT, { VerifyErrors } from 'jsonwebtoken';
 import mongoose from 'mongoose';
 import path from 'path';
 import passport from 'passport';
@@ -206,7 +206,27 @@ mongoose.connect(mongoUri, {
         }
     });
 
-    wsServer.on('connection', async function(socket: Socket) {
+    wsServer.use((socket: Socket, next: (err?: any) => void) => {
+        if (
+            socket.handshake.query &&
+            socket.handshake.query.token &&
+            typeof socket.handshake.query.token === 'string'
+        ){
+            JWT.verify(
+                socket.handshake.query.token,
+                jwtConfig.secret,
+                (err: VerifyErrors | null) => {
+                    if (err) {
+                        return next(new Error('Authentication error'));
+                    }
+                    next();
+                }
+            );
+        }
+        else {
+            next(new Error('Authentication error'));
+        }
+    }).on('connection', async (socket: Socket) => {
         console.log(`Connection received with id: ${socket.id}`);
 
         socket.on('disconnect', async (reason: string) => {
