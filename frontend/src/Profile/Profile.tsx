@@ -40,6 +40,7 @@ export default class Profile extends React.Component<IProps, IState> {
             newAvatarPath: ''
         }
         this.handleInputChange = this.handleInputChange.bind(this);
+        this.submitForm = this.submitForm.bind(this);
         this.loadProfile();
     }
 
@@ -134,7 +135,7 @@ export default class Profile extends React.Component<IProps, IState> {
         return false;
     }
 
-    submitForm(event: React.MouseEvent): void {
+    async submitForm(event: React.MouseEvent): Promise<void> {
         event.preventDefault();
         if (!this.validateFormFields()) {
             return;
@@ -142,7 +143,7 @@ export default class Profile extends React.Component<IProps, IState> {
         const oldPassword = this.state.oldPassword;
         const newPassword = this.state.newPassword;
         const avatar = this.state.newAvatarPath;
-        this.updateUser({
+        await this.updateUser({
             oldPassword,
             newPassword,
             avatar
@@ -178,7 +179,7 @@ export default class Profile extends React.Component<IProps, IState> {
                                 <div className="form_change_field">
                                     <label>Old password<span className="form_error">{this.state.fieldsError?.oldPasswordError}</span></label>
                                     <input
-                                        type='text' name='oldPassword'
+                                        type='password' name='oldPassword'
                                         value={this.state.oldPassword}
                                         onChange={this.handleInputChange}/>
                                 </div>
