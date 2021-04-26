@@ -4,6 +4,7 @@ import Auth from '../Auth/Auth';
 import NavBar from '../NavBar/NavBar';
 import StreamPresenter from '../StreamPresenter/StreamPresenter';
 import StreamViewer from '../StreamViewer/StreamViewer';
+import Profile from '../Profile/Profile';
 import { Redirect, Route, Switch, withRouter } from 'react-router';
 import Search from '../Search/Search';
 import useToken from './useToken';
@@ -19,7 +20,9 @@ function App() {
         <PrivateRoute path="/search" component={Search} isAuthenticated={!!token}/>
         <PrivateRoute path="/stream-presenter" component={StreamPresenter} isAuthenticated={!!token}/>
         <PrivateRoute path="/stream-viewer" component={StreamViewer} isAuthenticated={!!token}/>
-        <PrivateRoute path="/profile" component={NavBar} isAuthenticated={!!token}/>
+        <PrivateRoute path="/profile" isAuthenticated={!!token}>
+          <Profile token={token}/>
+        </PrivateRoute>
         <Redirect from="/" to="/search"/>
       </Switch>
       </div>

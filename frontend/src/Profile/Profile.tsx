@@ -21,7 +21,7 @@ interface IState {
 }
 
 interface IProps {
-
+    token?: string;
 }
 
 export default class Profile extends React.Component<IProps, IState> {
@@ -53,17 +53,49 @@ export default class Profile extends React.Component<IProps, IState> {
             fieldsError: {},
             newAvatarPath: ''
         });
-        setTimeout(() => { 
-            this.setState({
+    }
+
+    componentDidMount() {
+        fetch('https://localhost:4000/user', {
+            "method": "GET",
+            "headers": {
+                'Content-Type': 'application/json',
+                "Authorization": "Bearer " + this.props.token
+            }
+        })
+            .then((data) => data.json())
+            .then((data) => this.setState({
                 isLoading: false,
-                loadingError: undefined,
                 profile: {
-                    fullName: 'Lola Lolova',
-                    nickname: 'llolova',
-                    avatar: 'https://source.unsplash.com/rDEOVtE7vOs/200x200'
+                    fullName: data.user.name,
+                    nickname: data.user.login,
+                    avatar: data.user.avatar
                 }
+            }))
+            .catch((error) => this.setState({
+                isLoading: false,
+                loadingError: error
+            }));
+    }
+
+    changePassword = async(data: any) => {
+        fetch('https://localhost:4000/user', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data)
+        }).then(data => {
+            return data.json();
+        }).then((data: any) => {
+            this.setState({ 
+                profile: {
+                    avatar: data.user.avatar
+                } 
             });
-        }, 2000);
+        }).catch((err) => {
+            console.log('Error updating user.', err);
+        });
     }
 
     handleInputChange(event: React.ChangeEvent<HTMLInputElement>): void {
@@ -71,7 +103,6 @@ export default class Profile extends React.Component<IProps, IState> {
             { [event.target.name]: event.target.value }
         );
     }
-  
 
     submitForm(event: React.MouseEvent): void {
         // event.preventDefault();
@@ -126,7 +157,7 @@ export default class Profile extends React.Component<IProps, IState> {
                                         value={this.state.newPasswordRepeat}
                                         onChange={this.handleInputChange}/>
                                 </div>
-                                <button className='form_change_submit_btn btn_text' onClick={this.submitForm}>Login</button>
+                                <button className='form_change_submit_btn btn_text' onClick={this.submitForm}>Save</button>
                             </form>
                         </div>
                         <div className="profile_content_change_image">
@@ -143,7 +174,7 @@ export default class Profile extends React.Component<IProps, IState> {
     render(): JSX.Element {
         return (
             <div className="window">
-                <NavBar currentItem={2}/>
+                <NavBar currentItem={3}/>
                 <div className="profile_content">
                     { 
                         this.state.isLoading ? this.loading() :
