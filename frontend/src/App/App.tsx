@@ -21,7 +21,7 @@ function App() {
         <PrivateRoute path="/search" component={Search} isAuthenticated={!!token}/>
         <PrivateRoute path="/stream-presenter" component={StreamPresenter} isAuthenticated={!!token} history={history}/>
         <PrivateRoute path="/stream-viewer" component={StreamViewer} isAuthenticated={!!token} history={history}/>
-        <PrivateRoute path="/profile" component={Profile} isAuthenticated={!!token} token={token}>
+        <PrivateRoute path="/profile" isAuthenticated={!!token}>
           <Profile token={token}/>
         </PrivateRoute>
         <Redirect from="/" to="/search"/>
