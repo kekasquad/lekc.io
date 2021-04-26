@@ -2,7 +2,7 @@ import cors from 'cors';
 import express from 'express';
 import fs from 'fs';
 import https from 'https';
-import JWT from 'jsonwebtoken';
+import JWT, { VerifyErrors } from 'jsonwebtoken';
 import mongoose from 'mongoose';
 import path from 'path';
 import passport from 'passport';
@@ -11,7 +11,7 @@ import { Server, Socket } from 'socket.io';
 import { certDir, PORT, mongoUri, jwtConfig } from './config/constants';
 import {
     viewers, streamRooms, stopStream, stopViewer, startPresenter,
-    startViewer, onPresenterIceCandidate, onViewerIceCandidate
+    startViewer, onPresenterIceCandidate, onViewerIceCandidate, onChatMessage
 } from './ws-utils';
 import { User, UserModel } from './models/User';
 
@@ -19,6 +19,8 @@ const options = {
     cert: fs.readFileSync(path.resolve(certDir, 'cert.pem')),
     key:  fs.readFileSync(path.resolve(certDir, 'key.pem'))
 };
+
+export let wsServer: Server;
 
 mongoose.connect(mongoUri, {
     useNewUrlParser: true,
@@ -196,22 +198,38 @@ mongoose.connect(mongoUri, {
 
     app.use('/', router);
 
-    app.get('/', (req, res) => {
-        res.send('Hello World!')
-    });
-
     const server: https.Server = https.createServer(options, app);
 
-    const wsServer: Server = new Server(server, {
+    wsServer = new Server(server, {
         cors: {
             origin: '*'
         }
     });
 
-    wsServer.on('connection', async function(socket: Socket) {
+    wsServer.use((socket: Socket, next: (err?: any) => void) => {
+        if (
+            socket.handshake.query &&
+            socket.handshake.query.token &&
+            typeof socket.handshake.query.token === 'string'
+        ){
+            JWT.verify(
+                socket.handshake.query.token,
+                jwtConfig.secret,
+                (err: VerifyErrors | null) => {
+                    if (err) {
+                        return next(new Error('Authentication error'));
+                    }
+                    next();
+                }
+            );
+        }
+        else {
+            next(new Error('Authentication error'));
+        }
+    }).on('connection', async (socket: Socket) => {
         console.log(`Connection received with id: ${socket.id}`);
 
-        socket.on('disconnect', async function(reason: string) {
+        socket.on('disconnect', async (reason: string) => {
             console.log(`Connection ${socket.id} disconnected with reason: ${reason}`);
             if (viewers.has(socket.id)) {
                 await stopViewer(socket.id);
@@ -251,6 +269,10 @@ mongoose.connect(mongoUri, {
         socket.on('viewerIceCandidate', async (streamId: string, type: 'screen' | 'webcam', candidate: RTCIceCandidate) => {
             await onViewerIceCandidate(streamId, socket.id, type, candidate);
         });
+
+        socket.on('sendChatMessage', (streamId: string, userName: string, message: string) => {
+            onChatMessage(socket, streamId, userName, message);
+        })
     });
     server.listen(PORT, (): void => {
         console.log(`Server is listening on port ${PORT}`);

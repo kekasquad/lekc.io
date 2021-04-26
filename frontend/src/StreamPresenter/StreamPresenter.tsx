@@ -1,17 +1,21 @@
 import React from 'react';
 import { io, Socket } from 'socket.io-client';
+import { withRouter } from 'react-router';
+import { History, Location } from 'history';
 import './StreamPresenter.css';
 import NavBar from '../NavBar/NavBar';
 import Stream from '../lib/stream';
-import streamScreenPlaceholder from '../assets/stream-screen-placeholder.png';
-import streamWebcamPlaceholder from '../assets/stream-webcam-placeholder.png';
 import webcamTurnButton from '../assets/webcam-turn-button.png';
 import screenTurnButton from '../assets/screen-turn-button.png';
 import microTurnButton from '../assets/micro-turn-button.png';
-import viewersIcon from "../assets/viewers-icon.png";
+import viewersIcon from '../assets/viewers-icon.png';
+import Chat from '../Chat/Chat';
+import { serverAddress } from '../constants';
 
 interface IProps {
-    [key: string]: any
+    history: History;
+    location: Location;
+    match: any;
 }
 
 interface IState {
@@ -26,7 +30,7 @@ interface IState {
     audioEnabled: boolean;
 }
 
-export default class StreamPresenter extends React.Component<IProps, IState> {
+class StreamPresenter extends React.Component<IProps, IState> {
 
     constructor(props: any) {
         super(props);
@@ -59,11 +63,20 @@ export default class StreamPresenter extends React.Component<IProps, IState> {
         if (this.state.stream) {
             await this.state.stream.startPresenter();
         } else {
-            const socket: Socket = this.state.socket || io(`wss://localhost:4000`);
+            const token: string | null = localStorage.getItem('token');
+            if (!token) {
+                this.props.history.push('/login');
+                return;
+            }
+            const socket: Socket = this.state.socket || io(`wss://${serverAddress}`, { query: { token } });
             const screenVideo: HTMLVideoElement =
                 document.querySelector('#StreamPresenter-screen_video') as HTMLVideoElement;
             const webcamVideo: HTMLVideoElement =
                 document.querySelector('#StreamPresenter-webcam_video') as HTMLVideoElement;
+
+            socket.on('connect_error', (err: Error) => {
+                console.log('Socket connect error', err);
+            });
 
             socket.on('connect', () => {
                 if (screenVideo && webcamVideo) {
@@ -130,17 +143,29 @@ export default class StreamPresenter extends React.Component<IProps, IState> {
 
     render(): JSX.Element {
         return (
-            <div className="kek">
+            <div className='StreamPresenter-window_container'>
                 <NavBar currentItem={1}/>
                 <div className="StreamPresenter-component">
-                    <video id='StreamPresenter-screen_video' autoPlay={true} poster={streamScreenPlaceholder}></video>
-                    <video id='StreamPresenter-webcam_video' autoPlay={true} poster={streamWebcamPlaceholder}></video>
+                    <div className='StreamPresenter-main_area'>
+                        <video id='StreamPresenter-screen_video' autoPlay={true}></video>
+                        <div className='StreamPresenter-side_block'>
+                            <video id='StreamPresenter-webcam_video' autoPlay={true}></video>
+                            <div className='StreamPresenter-chat_block'>
+                                { this.state.stream && this.state.socket ?
+                                        <Chat socket={this.state.socket} streamId={this.state.streamId}/> : '' }
+                            </div>
+                        </div>
+                    </div>
 
                     <div className='StreamPresenter-control_buttons_group'>
                         {
                             this.state.stream ?
-                                <button className='common_button red_button' onClick={ this.stop }>Stop presenting</button> :
-                                <button className='common_button' onClick={ this.startPresenter }>Start presenting</button>
+                                <button id='StreamPresenter-start_stop_button'
+                                        className='common_button red_button'
+                                        onClick={ this.stop }>Stop presenting</button> :
+                                <button id='StreamPresenter-start_stop_button'
+                                        className='common_button'
+                                        onClick={ this.startPresenter }>Start presenting</button>
                         }
                         {
                             this.state.stream ?
@@ -183,3 +208,5 @@ export default class StreamPresenter extends React.Component<IProps, IState> {
         );
     }
 }
+
+export default withRouter(StreamPresenter);

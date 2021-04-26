@@ -1,0 +1,89 @@
+@import '../variables.css';
+
+.profile_content {
+    display: flex;
+    flex-direction: column;
+}
+
+.profile_content_information {
+    display: inline-flex;
+    flex-direction: row;
+    align-items: center;
+}
+
+.profile_content_information_avatar {
+    height: 16rem;
+    width: 16rem;
+    vertical-align: middle;
+    margin: 5rem 2rem 3rem 4rem;
+    border: 2px solid var(--dark-blue);
+    border-radius: 50%;
+}
+
+.profile_content_information_names {
+    font-family: Roboto, 'Open Sans', sans-serif;
+    display: flex;
+    flex-direction: column;
+}
+
+h1, h2 {
+    margin: 0.5rem 2rem;
+}
+
+.profile_content_change {
+    display: inline-flex;
+    flex-direction: row;
+    justify-content: space-around;
+}
+
+.profile_content_change_password {
+    width: 30%;
+}
+
+.profile_content_change_image {
+    width: 30%;
+}
+
+.profile_content_change_password_form {
+    padding: 2rem 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+}
+
+.profile_content_change_image_drop {  
+    border: 2px dashed var(--dark-blue);
+    padding: 2rem 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+}
+
+.form_change_field {
+    padding: 0.5rem 0;
+    width: 100%;
+}
+
+.profile_content_change_password_form input {
+    border: 0.5px solid var(--dark-blue);
+    border-radius: 2px;
+    width: 100%;
+    height: 1.4rem;
+    margin: 0.5rem auto;
+    padding: 2px 0 2px 0.5rem;
+}
+
+.form_change_submit_btn {
+    margin-top: 0.5rem;
+    width: 25%;
+    height: 30px;
+    border: none;
+    background-color: var(--active-tab-blue);
+}
+
+.profile_content_upload_image_btn {
+    width: 10rem;
+    height: 10rem;
+}

@@ -1,14 +1,18 @@
 import React from 'react';
 import { io, Socket } from 'socket.io-client';
+import { withRouter } from 'react-router';
+import { History, Location } from 'history';
 import './StreamViewer.css';
 import NavBar from '../NavBar/NavBar';
 import Stream from '../lib/stream';
-import streamScreenPlaceholder from '../assets/stream-screen-placeholder.png';
-import streamWebcamPlaceholder from '../assets/stream-webcam-placeholder.png';
 import viewersIcon from '../assets/viewers-icon.png';
+import Chat from '../Chat/Chat';
+import { serverAddress } from '../constants';
 
 interface IProps {
-    [key: string]: any
+    history: History;
+    location: Location;
+    match: any;
 }
 
 interface IState {
@@ -20,8 +24,7 @@ interface IState {
     webcamVideo: HTMLVideoElement | null;
 }
 
-export default class StreamViewer extends React.Component<IProps, IState> {
-
+class StreamViewer extends React.Component<IProps, IState> {
 
     constructor(props: any) {
         super(props);
@@ -54,9 +57,18 @@ export default class StreamViewer extends React.Component<IProps, IState> {
         if (this.state.stream) {
             await this.state.stream.startViewer();
         } else {
-            const socket: Socket = this.state.socket || io(`wss://localhost:4000`);
+            const token: string | null = localStorage.getItem('token');
+            if (!token) {
+                this.props.history.push('/login');
+                return;
+            }
+            const socket: Socket = this.state.socket || io(`wss://${serverAddress}`, { query: { token } });
             const screenVideo: HTMLVideoElement = document.querySelector('#StreamViewer-screen_video') as HTMLVideoElement;
             const webcamVideo: HTMLVideoElement = document.querySelector('#StreamViewer-webcam_video') as HTMLVideoElement;
+
+            socket.on('connect_error', (err: Error) => {
+                console.log('Socket connect error', err);
+            });
 
             socket.on('connect', () => {
                 if (screenVideo && webcamVideo) {
@@ -94,13 +106,31 @@ export default class StreamViewer extends React.Component<IProps, IState> {
 
     render(): JSX.Element {
         return (
-            <div className="kek">
+            <div className='StreamViewer-window_container'>
                 <NavBar currentItem={2}/>
                 <div className="StreamViewer-component">
-                    <video id='StreamViewer-screen_video' autoPlay={true} poster={streamScreenPlaceholder}></video>
-                    <video id='StreamViewer-webcam_video' autoPlay={true} poster={streamWebcamPlaceholder}></video>
+                    <div className='StreamPresenter-main_area'>
+                        <video id='StreamViewer-screen_video' autoPlay={true}></video>
+                        <div className='StreamViewer-side_block'>
+                            <video id='StreamViewer-webcam_video' autoPlay={true}></video>
+                            <div className='StreamViewer-chat_block'>
+                                { this.state.stream && this.state.socket ?
+                                    <Chat socket={this.state.socket} streamId={this.state.streamIdInputValue}/> : '' }
+                            </div>
+                        </div>
+                    </div>
 
                     <div className='StreamViewer-control_buttons_group'>
+                        {
+                            this.state.stream ?
+                                <button id='StreamViewer-start_stop_button'
+                                        className='common_button red_button'
+                                        onClick={ this.stop }>Stop watching</button> :
+                                <button id='StreamViewer-start_stop_button'
+                                        disabled={!this.state.streamIdInputValue}
+                                        className='common_button'
+                                        onClick={ this.startViewer }>Start watching</button>
+                        }
                         <div className='StreamViewer-stream_id_block'>
                             <span>Stream ID: <b>{this.state.stream ? this.state.streamIdInputValue : ''}</b></span>
                             {
@@ -110,14 +140,6 @@ export default class StreamViewer extends React.Component<IProps, IState> {
                                            readOnly={!!this.state.stream}/> : ''
                             }
                         </div>
-                        {
-                            this.state.stream ?
-                                <button className='common_button red_button'
-                                        onClick={ this.stop }>Stop watching</button> :
-                                <button disabled={!this.state.streamIdInputValue}
-                                        className='common_button'
-                                        onClick={ this.startViewer }>Start watching</button>
-                        }
                         {
                             this.state.stream ?
                                 <div className='StreamViewer-viewers_count_block'>
@@ -131,3 +153,5 @@ export default class StreamViewer extends React.Component<IProps, IState> {
         );
     }
 }
+
+export default withRouter(StreamViewer);
