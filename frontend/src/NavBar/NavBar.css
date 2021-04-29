@@ -90,6 +90,11 @@ h1 {
     padding: 0.5rem 0;
 }
 
+.form_join_field label {
+    display: block;
+    margin-left: 1.5rem;
+}
+
 .form_join_field input {
     border: 0.5px solid var(--dark-blue);
     border-radius: 2px;
