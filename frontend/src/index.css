@@ -31,6 +31,11 @@ code {
   outline: none;
 }
 
+.small_button {
+  width: var(--small-button-width);
+  height: var(--small-button-height);
+}
+
 .red_button {
   background-color: var(--light-red);
 }
