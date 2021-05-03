@@ -103,7 +103,7 @@ export default class Search extends React.Component<IProps, IState> {
     render(): JSX.Element {
         return (
             <div className="window">
-                <NavBar currentItem={0}/>
+                <NavBar currentTab={0}/>
                 <div className="search_container">
                     <span className="search_title">Search by author or name</span>
                     <div className="search_inputs">

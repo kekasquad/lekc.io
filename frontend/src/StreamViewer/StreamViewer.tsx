@@ -107,7 +107,7 @@ class StreamViewer extends React.Component<IProps, IState> {
     render(): JSX.Element {
         return (
             <div className='StreamViewer-window_container'>
-                <NavBar currentItem={2}/>
+                <NavBar currentTab={2}/>
                 <div className="StreamViewer-component">
                     <div className='StreamPresenter-main_area'>
                         <video id='StreamViewer-screen_video' autoPlay={true}></video>

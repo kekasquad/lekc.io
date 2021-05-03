@@ -1,5 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { withRouter } from 'react-router';
+import { History, Location } from 'history';
 import './NavBar.css';
 
 import createStreamButtonIcon from '../assets/create-stream-button.png';
@@ -8,115 +10,104 @@ import searchStreamButtonIcon from '../assets/search-stream-button.png';
 import userProfileButtonIcon from '../assets/user-profile-button.png';
 
 enum SelectedTab {
-  FIND,
-  STREAM_PRESENTER,
-  PROFILE
+    FIND,
+    STREAM_PRESENTER,
+    PROFILE
 }
 
 interface IProps {
-  currentItem?: SelectedTab;
-  joinMode?: boolean;
+    currentTab?: SelectedTab;
+    history: History;
+    location: Location;
+    match: any;
 }
 
 interface IState {
-  currentItem?: SelectedTab;
-  joinMode?: boolean;
-  roomID?: string;
-  roomPassword?: string;
-  fieldsErrors?: {
-    roomID?: string;
-  }
-  errorText?: string;
+    currentTab?: SelectedTab;
+    streamId?: string;
 }
 
-export default class NavBar extends React.Component<IProps, IState> {
+class NavBar extends React.Component<IProps, IState> {
 
-  constructor(props: any) {
-    super(props);
-    this.state = {
-      currentItem: props.currentItem,
-      joinMode: props.joinMode === true,
-      roomID: '',
-      roomPassword: '',
-      fieldsErrors: {},
-      errorText: ''
-    };
-    
-    this.handleInputChange = this.handleInputChange.bind(this);
-  }
+    constructor(props: any) {
+        super(props);
+        this.state = {
+            currentTab: props.currentTab,
+            streamId: ''
+        };
 
-  handleInputChange(event: React.ChangeEvent<HTMLInputElement>): void {
-      this.setState(
-          { [event.target.name]: event.target.value }
-      );
-  }
+        this.handleStreamIdChange = this.handleStreamIdChange.bind(this);
+        this.changeTab = this.changeTab.bind(this);
+        this.signOut = this.signOut.bind(this);
+        this.joinStream = this.joinStream.bind(this);
+    }
 
-  flushControls(): void {
-    this.setState(
-        { roomID: '', roomPassword: '', fieldsErrors: {} }
-    );
-  }
-  
-  changeMode(joinMode: boolean): void {
-    if (this.state.joinMode === joinMode) { return; }
-    this.setState({ joinMode });
-    this.flushControls();
-  }
+    handleStreamIdChange(event: React.ChangeEvent<HTMLInputElement>): void {
+        this.setState({ streamId: event.target.value });
+    }
 
-  changeTab(currentTab: SelectedTab): void {
-    if (this.state.currentItem == currentTab) { return; }
-    this.setState({ currentItem: currentTab });
-  }
+    changeTab(currentTab: SelectedTab): void {
+        if (this.state.currentTab == currentTab) { return; }
+        this.setState({ currentTab: currentTab });
+    }
 
-  validateFormFields(): boolean {
-      return false;
-  }
+    signOut(): void {
+        localStorage.removeItem('token');
+    }
 
-  signOut(): void {
-    localStorage.removeItem('token');
-  }
+    joinStream(): void {
+        this.props.history.push(`/stream/${this.state.streamId}`);
+    }
 
-  render(): JSX.Element {
-    return (
-      <nav className='Navbar-component'>
-        <div className='Navbar-left_section'>
-          <Link to='/'>
-            <h1>Lekc.io</h1>
-          </Link>
-          <div className='Navbar-tabs'>
-            <Link to='/search'>
-              <button className={ 'Navbar-tab Navbar-btn_icon' +
-                                  (this.state.currentItem == SelectedTab.FIND ? ' Navbar-tab_active' : '') }
-                      onClick={ () => this.changeTab(SelectedTab.FIND) }>
-                <img src={searchStreamButtonIcon} alt='Search streams'/>
-              </button>
-            </Link>
-            <Link to='/presenter'>
-              <button className={ 'Navbar-tab Navbar-btn_icon' +
-                                  (this.state.currentItem == SelectedTab.STREAM_PRESENTER ? ' Navbar-tab_active' : '') }
-                      onClick={ () => this.changeTab(SelectedTab.STREAM_PRESENTER) }>
-                <img src={createStreamButtonIcon} alt='Create stream'/>
-              </button>
-            </Link>
-            <Link to='/profile'>
-              <button className={ 'Navbar-tab Navbar-btn_icon' +
-                                  (this.state.currentItem == SelectedTab.PROFILE ? ' Navbar-tab_active' : '') }
-                      onClick={ () => this.changeTab(SelectedTab.PROFILE) }>
-                <img src={userProfileButtonIcon} alt='User profile'/>
-              </button>
-            </Link>
-          </div>
-        </div>
-        <div className='Navbar-right_section'>
-          <Link to='/login'>
-            <button className='Navbar-btn_icon' onClick={ () => this.signOut() }>
-              <img src={logoutButtonIcon} alt='Log out'/>
-            </button>
-          </Link>
-          <button className='Navbar-btn_join common_button green_button small_button'
-                  onClick={ () => this.changeMode(true) }>Join by id</button>
-        </div>
-      </nav>
-    );
-  }
+    render(): JSX.Element {
+        return (
+            <nav className='Navbar-component'>
+                <div className='Navbar-left_section'>
+                    <Link to='/'>
+                        <h1>Lekc.io</h1>
+                    </Link>
+                    <div className='Navbar-tabs'>
+                        <Link to='/search'>
+                            <button className={ 'Navbar-tab Navbar-btn_icon' +
+                                    (this.state.currentTab == SelectedTab.FIND ? ' Navbar-tab_active' : '') }
+                                    onClick={ () => this.changeTab(SelectedTab.FIND) } title='Search for streams'>
+                                <img src={searchStreamButtonIcon} alt='Search for streams'/>
+                            </button>
+                        </Link>
+                        <Link to='/presenter'>
+                            <button className={ 'Navbar-tab Navbar-btn_icon' +
+                                    (this.state.currentTab == SelectedTab.STREAM_PRESENTER ? ' Navbar-tab_active' : '') }
+                                    onClick={ () => this.changeTab(SelectedTab.STREAM_PRESENTER) } title='Create stream'>
+                                <img src={createStreamButtonIcon} alt='Create stream'/>
+                            </button>
+                        </Link>
+                        <Link to='/profile'>
+                            <button className={ 'Navbar-tab Navbar-btn_icon' +
+                                    (this.state.currentTab == SelectedTab.PROFILE ? ' Navbar-tab_active' : '') }
+                                    onClick={ () => this.changeTab(SelectedTab.PROFILE) } title='User profile'>
+                                <img src={userProfileButtonIcon} alt='User profile'/>
+                            </button>
+                        </Link>
+                    </div>
+                </div>
+                <div className='Navbar-right_section'>
+                    <Link to='/login'>
+                        <button className='Navbar-btn_icon' onClick={this.signOut} title='Log out'>
+                            <img src={logoutButtonIcon} alt='Log out'/>
+                        </button>
+                    </Link>
+                    <button className='Navbar-btn_join common_button green_button small_button'
+                            onClick={this.joinStream}
+                            disabled={!this.state.streamId}>Join by ID</button>
+                    <input className='Navbar-join_input'
+                           type='text'
+                           placeholder='Enter stream ID'
+                           value={this.state.streamId}
+                           onChange={this.handleStreamIdChange}/>
+                </div>
+            </nav>
+        );
+    }
 }
+
+export default withRouter(NavBar);

@@ -144,7 +144,7 @@ class StreamPresenter extends React.Component<IProps, IState> {
     render(): JSX.Element {
         return (
             <div className='StreamPresenter-window_container'>
-                <NavBar currentItem={1}/>
+                <NavBar currentTab={1}/>
                 <div className="StreamPresenter-component">
                     <div className='StreamPresenter-main_area'>
                         <video id='StreamPresenter-screen_video' autoPlay={true}></video>
@@ -193,6 +193,7 @@ class StreamPresenter extends React.Component<IProps, IState> {
                                 <div className='StreamPresenter-stream_id_block'>
                                     <span>Stream ID: </span>
                                     <input type='text' value={this.state.streamId} readOnly={true} />
+                                    <span>Stream Link: {`${window.location.origin}/stream/${this.state.streamId}`}</span>
                                 </div> : ''
                         }
                         {

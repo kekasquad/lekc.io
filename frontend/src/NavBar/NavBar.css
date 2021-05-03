@@ -40,8 +40,7 @@
 }
 
 .Navbar-btn_icon {
-    border: none; 
-    /*padding: 12px 16px;*/
+    border: none;
     margin: 0;
     cursor: pointer;
     background-color: #00000000;
@@ -61,4 +60,8 @@
 .Navbar-btn_join {
     vertical-align: middle;
     margin: 0 1rem;
+}
+
+.Navbar-join_input {
+    width: 12rem;
 }
