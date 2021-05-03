@@ -47,12 +47,8 @@
 }
 
 .Auth-form_field input {
-    border: 0.5px solid var(--dark-blue);
-    border-radius: 2px;
-    height: 1.4rem;
     width: 100%;
     margin: 0.5rem auto;
-    padding: 2px 0 2px 0.5rem;
 }
 
 .Auth-form_field label {
