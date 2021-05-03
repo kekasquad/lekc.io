@@ -194,7 +194,7 @@ mongoose.connect(mongoUri, {
                 });
             }
         }
-    )
+    );
 
     app.use('/', router);
 
@@ -207,11 +207,7 @@ mongoose.connect(mongoUri, {
     });
 
     wsServer.use((socket: Socket, next: (err?: any) => void) => {
-        if (
-            socket.handshake.query &&
-            socket.handshake.query.token &&
-            typeof socket.handshake.query.token === 'string'
-        ){
+        if (socket.handshake.query?.token && typeof socket.handshake.query.token === 'string'){
             JWT.verify(
                 socket.handshake.query.token,
                 jwtConfig.secret,
@@ -228,51 +224,65 @@ mongoose.connect(mongoUri, {
         }
     }).on('connection', async (socket: Socket) => {
         console.log(`Connection received with id: ${socket.id}`);
-
-        socket.on('disconnect', async (reason: string) => {
-            console.log(`Connection ${socket.id} disconnected with reason: ${reason}`);
-            if (viewers.has(socket.id)) {
-                await stopViewer(socket.id);
-            } else if (streamRooms.has(socket.id)) {
-                await stopStream(socket.id);
+        let userId: string = '';
+        if (socket.handshake.query?.token && typeof socket.handshake.query.token === 'string') {
+            const decoded = JWT.decode(socket.handshake.query.token);
+            userId = typeof decoded === 'string' ? JSON.parse(decoded).sub : decoded?.sub;
+            if (!userId) {
+                socket.disconnect();
+                return
             }
-        });
+        }
 
-        socket.on('presenter', async (type: 'screen' | 'webcam', sdpOffer: string) => {
-            console.log(`Connection ${socket.id} received presenter's SDP offer with type ${type}`);
-            try {
-                const sdpAnswer: string = await startPresenter(socket, type, sdpOffer);
-                socket.emit('sdpResponse', 'accepted', type, sdpAnswer);
-            } catch (error) {
-                console.log(`Presenter's SDP response error: ${error}`);
-                await stopStream(socket.id);
-                socket.emit('sdpResponse', 'rejected', type, error);
-            }
-        });
+        UserModel.findById(userId).exec().then(() => {
+            socket.on('disconnect', async (reason: string) => {
+                console.log(`Connection ${socket.id} disconnected with reason: ${reason}`);
+                if (viewers.has(socket.id)) {
+                    await stopViewer(socket.id);
+                } else if (streamRooms.has(socket.id)) {
+                    await stopStream(socket.id);
+                }
+            });
 
-        socket.on('viewer', async (streamId: string, type: 'screen' | 'webcam', sdpOffer: string) => {
-            console.log(`Connection ${socket.id} received viewer's SDP offer with type ${type}`);
-            try {
-                const sdpAnswer: string = await startViewer(streamId, socket, type, sdpOffer);
-                socket.emit('sdpResponse', 'accepted', type, sdpAnswer);
-            } catch (error) {
-                console.log(`Viewer's SDP response error: ${error}`);
-                await stopViewer(socket.id);
-                socket.emit('sdpResponse', 'rejected', type, error);
-            }
-        });
+            socket.on('presenter', async (type: 'screen' | 'webcam', sdpOffer: string) => {
+                console.log(`Connection ${socket.id} received presenter's SDP offer with type ${type}`);
+                try {
+                    const sdpAnswer: string = await startPresenter(socket, userId, type, sdpOffer);
+                    socket.emit('sdpResponse', 'accepted', type, sdpAnswer);
+                } catch (error) {
+                    console.log(`Presenter's SDP response error: ${error}`);
+                    await stopStream(socket.id);
+                    socket.emit('sdpResponse', 'rejected', type, error);
+                }
+            });
 
-        socket.on('presenterIceCandidate', async (streamId: string, type: 'screen' | 'webcam', candidate: RTCIceCandidate) => {
-            await onPresenterIceCandidate(streamId, socket.id, type, candidate);
-        });
+            socket.on('viewer', async (streamId: string, type: 'screen' | 'webcam', sdpOffer: string) => {
+                console.log(`Connection ${socket.id} received viewer's SDP offer with type ${type}`);
+                try {
+                    const sdpAnswer: string = await startViewer(streamId, socket, userId, type, sdpOffer);
+                    socket.emit('sdpResponse', 'accepted', type, sdpAnswer);
+                } catch (error) {
+                    console.log(`Viewer's SDP response error: ${error}`);
+                    await stopViewer(socket.id);
+                    socket.emit('sdpResponse', 'rejected', type, error);
+                }
+            });
 
-        socket.on('viewerIceCandidate', async (streamId: string, type: 'screen' | 'webcam', candidate: RTCIceCandidate) => {
-            await onViewerIceCandidate(streamId, socket.id, type, candidate);
-        });
+            socket.on('presenterIceCandidate', async (streamId: string, type: 'screen' | 'webcam', candidate: RTCIceCandidate) => {
+                await onPresenterIceCandidate(streamId, socket.id, type, candidate);
+            });
 
-        socket.on('sendChatMessage', (streamId: string, userName: string, message: string) => {
-            onChatMessage(socket, streamId, userName, message);
-        })
+            socket.on('viewerIceCandidate', async (streamId: string, type: 'screen' | 'webcam', candidate: RTCIceCandidate) => {
+                await onViewerIceCandidate(streamId, socket.id, type, candidate);
+            });
+
+            socket.on('sendChatMessage', (streamId: string, userName: string, message: string) => {
+                onChatMessage(socket, streamId, userName, message);
+            })
+        }).catch(() => {
+            console.log('User not found');
+            socket.disconnect();
+        });
     });
     server.listen(PORT, (): void => {
         console.log(`Server is listening on port ${PORT}`);
