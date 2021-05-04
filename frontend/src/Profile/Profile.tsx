@@ -10,7 +10,10 @@ interface IState {
     profile?: {
         fullName?: string;
         nickname?: string;
-        avatar?: string;
+        avatar?: {
+            contentType?: string,
+            data?: string
+        };
     };
     oldPassword?: string;
     newPassword?: string;
@@ -81,7 +84,7 @@ export default class Profile extends React.Component<IProps, IState> {
 
     async updateUser(data: any): Promise<void> {
         try {
-            const user: any = await (await fetch(`https://${serverAddress}/user`, {
+            const user: any = await (await fetch(`https://${serverAddress}/user/password `, {
                 "method": "PUT",
                 "headers": {
                     'Content-Type': 'application/json',
@@ -92,9 +95,9 @@ export default class Profile extends React.Component<IProps, IState> {
             this.setState({
                 isLoading: false,
                 profile: {
-                    fullName: user.name,
-                    nickname: user.login,
-                    avatar: user.avatar
+                    fullName: data.user.name,
+                    nickname: data.user.login,
+                    avatar: data.user.avatar
                 }
             });
         } catch (err) {
@@ -103,7 +106,27 @@ export default class Profile extends React.Component<IProps, IState> {
     }
 
     async loadAvatar(file: any): Promise<void> {
-        console.log(file);
+        try {
+            const form = new FormData();
+            form.append('image', file);
+            const data: any = await (await fetch(`https://${serverAddress}/user/avatar`, {
+                "method": "PUT",
+                "headers": {
+                    "Authorization": `Bearer ${this.props.token}`
+                },
+                body: form
+            })).json();
+            this.setState({
+                isLoading: false,
+                profile: {
+                    fullName: data.user.name,
+                    nickname: data.user.login,
+                    avatar: data.user.avatar
+                }
+            });
+        } catch (err) {
+            console.log('Error updating user\'s avatar.', err);
+        }
     }
 
     handleInputChange(event: React.ChangeEvent<HTMLInputElement>): void {
@@ -137,8 +160,7 @@ export default class Profile extends React.Component<IProps, IState> {
         const avatar = this.state.newAvatarPath;
         await this.updateUser({
             oldPassword,
-            newPassword,
-            avatar
+            newPassword
         });
     }
 
@@ -172,7 +194,12 @@ export default class Profile extends React.Component<IProps, IState> {
         const view = (
             <div className="profile_content">
                 <div className="profile_content_information">
-                        <img src={this.state.profile?.avatar} className="profile_content_information_avatar"/>
+                        <img src={
+                                this.state.profile?.avatar?.data === undefined || this.state.profile?.avatar?.data?.length === 0 ?
+                                'https://static-cdn.jtvnw.net/jtv_user_pictures/fc144fea-e5b3-4ee6-bb38-60784be23877-profile_image-300x300.png' :
+                                `data:${this.state.profile?.avatar?.contentType};base64,${Buffer.from(this.state.profile?.avatar?.data).toString('base64')}`
+                            } 
+                            className="profile_content_information_avatar"/>
                         <div className="profile_content_information_names">
                             <h1> { this.state.profile?.fullName } </h1>
                             <h2> { "@" + this.state.profile?.nickname } </h2>
@@ -206,7 +233,7 @@ export default class Profile extends React.Component<IProps, IState> {
                                 <button className='form_change_submit_btn btn_text' onClick={this.submitForm}>Save</button>
                             </form>
                         </div>
-                        <div className="profile_content_change_image">
+                        <form className="profile_content_change_image" encType="multipart/form-data">
                             <h3>Change profile image</h3>
                             <DragAndDrop handleFileDrop={this.handleFileDrop}>
                                 Add new profile image
@@ -218,7 +245,7 @@ export default class Profile extends React.Component<IProps, IState> {
                                 </label>
                                 <input id="file-input" accept="image/*" type='file' onChange={ this.handleFileChoose }/>
                             </DragAndDrop>
-                        </div>
+                        </form>
                     </div>
             </div>
         );

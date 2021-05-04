@@ -1,4 +1,5 @@
 import cors from 'cors';
+import multer from 'multer';
 import express from 'express';
 import fs from 'fs';
 import https from 'https';
@@ -28,6 +29,7 @@ mongoose.connect(mongoUri, {
     useCreateIndex: true,
     authSource: 'admin'
 }).then(() => {
+    const upload = multer();
     const app: express.Express = express();
     const router = express.Router();
 
@@ -128,43 +130,72 @@ mongoose.connect(mongoUri, {
     );
 
     router.put(
-        '/user',
+        '/user/password',
         passport.authenticate('jwt', { session: false }),
         (req, res) => {
             if (req.user) {
                 const user = req.user as User;
-                let isError = false;
-                if (req.body.oldPassword && req.body.newPassword) {
-                    console.log('changing');
-                    user.changePassword(req.body.oldPassword, req.body.newPassword, (error: Error, updatedUser: any) => {
-                        if (error) {
-                            isError = true;
-                            console.log(error);
-                            return res.status(400).json({
-                                error: 'Couldn\'t change password'
-                            });
-                        }
-                    });
-                }
-                if (req.body.avatar) {
-                    UserModel.updateOne({ login: user.login }, { avatar: req.body.avatar }).catch((error: Error) => {
-                        isError = true;
-                        return res.status(404).json({
-                            error: 'There is no such user'
+                user.changePassword(req.body.oldPassword, req.body.newPassword, (error: Error, updatedUser: any) => {
+                    if (error) {
+                        return res.status(400).json({
+                            error: 'Couldn\'t change password'
                         });
-                    });
-                }
-                if (isError) {
-                    UserModel.findOne({ login: user.login }).then((user) => {
+                    } else {
                         return res.status(200).json({
-                            user: user
+                            user: updatedUser
                         });
-                    }).catch((error: Error) => {
-                        return res.status(404).json({
-                            error: 'There is no such user'
-                        });
-                    });
-                }
+                    }
+                });
+            } else {
+                return res.status(401).json({
+                    error: 'User is not authenticated'
+                });
+            }
+        }
+    )
+
+    router.get(
+        '/user/avatar',
+        passport.authenticate('jwt', { session: false }),
+        upload.single("image"),
+        (req, res) => {
+            if (req.user) {
+                const user = req.user as User;
+                user.avatar = {
+                    contentType: req.file.mimetype,
+                    data: req.file.buffer
+                };
+                user.save()
+                    .then(updatedUser => 
+                        res.status(200).json({
+                            user: updatedUser
+                        })
+                    ).catch(e => res.status(400).json({
+                        error: 'Couldn\'t change password'
+                    }));
+            } else {
+                return res.status(401).json({
+                    error: 'User is not authenticated'
+                });
+            }
+        }
+    )
+
+    router.put(
+        '/user/avatar',
+        passport.authenticate('jwt', { session: false }),
+        upload.single("image"),
+        (req, res) => {
+            if (req.user) {
+                const user = req.user as User;
+                user.avatar = {
+                    contentType: req.file.mimetype,
+                    data: req.file.buffer
+                };
+                user.save();
+                return res.status(200).json({
+                    user: req.user
+                });
             } else {
                 return res.status(401).json({
                     error: 'User is not authenticated'
