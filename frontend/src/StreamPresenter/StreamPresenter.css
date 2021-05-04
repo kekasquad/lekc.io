@@ -13,7 +13,7 @@
 
 .StreamPresenter-component {
     display: grid;
-    grid-template-rows: minmax(0, 85%) 15%;
+    grid-template-rows: minmax(0, 90%) 10%;
 }
 
 .StreamPresenter-main_area {

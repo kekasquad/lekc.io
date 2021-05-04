@@ -32,7 +32,7 @@ interface IState {
 
 class StreamPresenter extends React.Component<IProps, IState> {
 
-    constructor(props: any) {
+    constructor(props: IProps) {
         super(props);
 
         this.state = {

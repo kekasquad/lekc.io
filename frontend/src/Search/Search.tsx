@@ -35,7 +35,7 @@ interface IState {
 
 export default class Search extends React.Component<IProps, IState> {
 
-    constructor(props: any) {
+    constructor(props: IProps) {
         super(props);
         this.state = {
             searchQuery: '',

@@ -31,7 +31,7 @@ interface IState {
 
 export default class Auth extends React.Component<IProps, IState> {
 
-    constructor(props: any) {
+    constructor(props: IProps) {
         super(props);
         this.state = {
             redirectToReferrer: false,
