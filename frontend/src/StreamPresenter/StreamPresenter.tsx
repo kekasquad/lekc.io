@@ -16,6 +16,7 @@ interface IProps {
     history: History;
     location: Location;
     match: any;
+    showNotification: (type: 'info' | 'error' | 'success', text: string, notificationTimeout?: number) => void;
 }
 
 interface IState {
@@ -144,7 +145,7 @@ class StreamPresenter extends React.Component<IProps, IState> {
     render(): JSX.Element {
         return (
             <div className='StreamPresenter-window_container'>
-                <NavBar currentTab={1}/>
+                <NavBar currentTab={1} showNotification={this.props.showNotification}/>
                 <div className="StreamPresenter-component">
                     <div className='StreamPresenter-main_area'>
                         <video id='StreamPresenter-screen_video' autoPlay={true}></video>

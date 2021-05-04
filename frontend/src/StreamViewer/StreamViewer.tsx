@@ -17,6 +17,7 @@ interface IProps {
     history: History;
     location: Location;
     match: match<IUrlParams>;
+    showNotification: (type: 'info' | 'error' | 'success', text: string, notificationTimeout?: number) => void;
 }
 
 interface IState {
@@ -82,6 +83,14 @@ class StreamViewer extends React.Component<IProps, IState> {
         socket.on('viewersCount', (viewersCount: number) => {
             this.setState({ streamViewersCount: viewersCount });
         });
+
+        socket.on('streamStopped', () => {
+            this.setState({ stream: null });
+            this.props.showNotification(
+                'info', 'Stream ended, you will be redirected to previous page', 4000
+            );
+            setTimeout(() => this.back(), 5000);
+        });
     }
 
     componentWillUnmount() {
@@ -123,7 +132,7 @@ class StreamViewer extends React.Component<IProps, IState> {
 
                 <div className='StreamViewer-control_buttons_group'>
                     <div className='StreamViewer-stream_id_block'>
-                        <span>Stream ID: <b>{this.state.stream ? this.state.streamId : ''}</b></span>
+                        {this.state.stream ? <span>Stream ID: <i>{this.state.streamId}</i></span> : ''}
                     </div>
                     {
                         this.state.stream ?

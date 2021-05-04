@@ -56,22 +56,26 @@ function App() {
                 <Route path='/login'>
                     <Auth setToken={setToken} showNotification={showNotification}/>
                 </Route>
-                <PrivateRoute path='/search' component={Search} isAuthenticated={!!token}/>
-                <PrivateRoute path='/presenter' component={StreamPresenter} isAuthenticated={!!token}/>
-                <PrivateRoute path='/stream/:id' component={StreamViewer} isAuthenticated={!!token}/>
-                <PrivateRoute path='/profile' component={NavBar} isAuthenticated={!!token}/>
+                <PrivateRoute path='/search' component={Search}
+                              isAuthenticated={!!token} showNotification={showNotification}/>
+                <PrivateRoute path='/presenter' component={StreamPresenter}
+                              isAuthenticated={!!token} showNotification={showNotification}/>
+                <PrivateRoute path='/stream/:id' component={StreamViewer}
+                              isAuthenticated={!!token} showNotification={showNotification}/>
+                <PrivateRoute path='/profile' component={NavBar}
+                              isAuthenticated={!!token} showNotification={showNotification}/>
                 <Redirect from='/' to='/search'/>
             </Switch>
         </div>
     );
 }
 
-const PrivateRoute = ({component, isAuthenticated, ...rest}: any) => {
+const PrivateRoute = ({component, isAuthenticated, showNotification, ...rest}: any) => {
     const routeComponent = (props: any) => {
         const from = '?from=' + props.location.pathname;
         return (
             isAuthenticated
-                ? React.createElement(component, props)
+                ? React.createElement(component, {...props, showNotification})
                 : <Redirect to={{
                     pathname: '/login',
                     search: from

@@ -23,7 +23,9 @@ interface Streamer {
     views?: number
 }
 
-interface IProps {}
+interface IProps {
+    showNotification: (type: 'info' | 'error' | 'success', text: string, notificationTimeout?: number) => void;
+}
 
 interface IState {
     searchQuery?: string;
@@ -103,7 +105,7 @@ export default class Search extends React.Component<IProps, IState> {
     render(): JSX.Element {
         return (
             <div className="window">
-                <NavBar currentTab={0}/>
+                <NavBar currentTab={0} showNotification={this.props.showNotification}/>
                 <div className="search_container">
                     <span className="search_title">Search by author or name</span>
                     <div className="search_inputs">

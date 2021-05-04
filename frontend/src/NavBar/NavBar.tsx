@@ -20,6 +20,7 @@ interface IProps {
     history: History;
     location: Location;
     match: any;
+    showNotification: (type: 'info' | 'error' | 'success', text: string, notificationTimeout?: number) => void;
 }
 
 interface IState {
