@@ -11,6 +11,7 @@ interface IProps {
             from?: string
         }
     }
+    showNotification: (type: 'info' | 'error' | 'success', text: string, notificationTimeout?: number) => void;
 }
 
 interface IState {
@@ -59,8 +60,10 @@ export default class Auth extends React.Component<IProps, IState> {
             })).json();
             this.props.setToken(tokenData.token);
             this.setState({ redirectToReferrer: true });
+            this.props.showNotification('success', 'Successfully logged in', 1300);
         } catch (err) {
-            console.log('Error logging in.', err);
+            this.props.showNotification('error', 'Error logging in with provided credentials');
+            console.log('Error logging in', err);
         }
     }
 
@@ -75,8 +78,12 @@ export default class Auth extends React.Component<IProps, IState> {
             })).json();
             this.props.setToken(tokenData.token);
             this.setState({ redirectToReferrer: true });
+            this.props.showNotification('success', 'Successfully registered', 1300);
         } catch (err) {
-            console.log('Error logging in.', err);
+            this.props.showNotification(
+                'error', 'Error signing up with provided credentials: User already exists'
+            );
+            console.log('Error signing up', err);
         }
     }
 

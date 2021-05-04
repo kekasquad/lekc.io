@@ -4,5 +4,6 @@ export const FORM_ERROR_MESSAGES = {
     repeatedPasswordMismatch: "Value doesn't match provided password",
     incorrectData: 'Invalid data'
 };
+export const NOTIFICATION_TIMEOUT = 2000;
 
 export const serverAddress = 'localhost:4000';
