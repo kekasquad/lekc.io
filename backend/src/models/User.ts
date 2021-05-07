@@ -7,10 +7,8 @@ export interface User extends PassportLocalDocument  {
 }
 
 export interface UserAvatar {
-    avatar: {
-        data: Buffer, 
-        contentType: string
-    }
+    data: Buffer, 
+    contentType: string
 }
 
 const avatarSchema = new Schema({
