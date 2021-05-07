@@ -71,6 +71,12 @@
     justify-content: flex-start;
 }
 
+.StreamPresenter-share_icon {
+    width: 25px;
+    height: 25px;
+    margin: 0 0.5rem;
+}
+
 .StreamPresenter-viewers_icon {
     width: 25px;
     height: 25px;

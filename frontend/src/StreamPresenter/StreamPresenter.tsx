@@ -9,6 +9,7 @@ import webcamTurnButton from '../assets/webcam-turn-button.png';
 import screenTurnButton from '../assets/screen-turn-button.png';
 import microTurnButton from '../assets/micro-turn-button.png';
 import viewersIcon from '../assets/viewers-icon.png';
+import shareIcon from '../assets/share-icon.png';
 import Chat from '../Chat/Chat';
 import { serverAddress } from '../constants';
 
@@ -194,7 +195,7 @@ class StreamPresenter extends React.Component<IProps, IState> {
                                 <div className='StreamPresenter-stream_id_block'>
                                     <span>Stream ID: </span>
                                     <input type='text' value={this.state.streamId} readOnly={true} />
-                                    <span>Stream Link: {`${window.location.origin}/stream/${this.state.streamId}`}</span>
+                                    <img className='StreamPresenter-share_icon' src={shareIcon} onClick={ () => navigator.clipboard.writeText(`${window.location.origin}/stream/${this.state.streamId}`) }/>
                                 </div> : ''
                         }
                         {
