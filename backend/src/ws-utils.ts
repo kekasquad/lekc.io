@@ -5,6 +5,7 @@ import { wsServer } from './index';
 
 interface Presenter {
     id: string;
+    userId: string;
     socket: Socket;
     screenPipeline: MediaPipeline | null;
 	webcamPipeline: MediaPipeline | null;
@@ -14,6 +15,7 @@ interface Presenter {
 
 interface Viewer {
 	id: string;
+	userId: string;
     socket: Socket;
 	screenWebRtcEndpoint: WebRtcEndpoint | null;
 	webcamWebRtcEndpoint: WebRtcEndpoint | null;
@@ -68,7 +70,7 @@ export async function stopViewer(socketId: string) {
 	clearCandidatesQueue(streamId, socketId);
 }
 
-export async function startPresenter(socket: Socket, type: 'screen' | 'webcam', sdpOffer: string): Promise<string> {
+export async function startPresenter(socket: Socket, userId: string, type: 'screen' | 'webcam', sdpOffer: string): Promise<string> {
 	const socketId: string = socket.id;
 	let stream: Stream | undefined = streamRooms.get(socketId);
 	if (!stream) {
@@ -76,6 +78,7 @@ export async function startPresenter(socket: Socket, type: 'screen' | 'webcam', 
 			id: socketId,
 			presenter: {
 				id: socketId,
+				userId,
 				socket,
 				screenPipeline: null,
 				webcamPipeline: null,
@@ -158,7 +161,7 @@ export async function startPresenter(socket: Socket, type: 'screen' | 'webcam', 
 	}
 }
 
-export async function startViewer(streamId: string, socket: Socket, type: 'screen' | 'webcam', sdpOffer: string): Promise<string> {
+export async function startViewer(streamId: string, socket: Socket, userId: string, type: 'screen' | 'webcam', sdpOffer: string): Promise<string> {
 	const socketId: string = socket.id;
 	const stream: Stream | undefined = streamRooms.get(streamId);
 	if (!stream) {
@@ -182,7 +185,9 @@ export async function startViewer(streamId: string, socket: Socket, type: 'scree
 		if (viewer) {
 			viewer.screenWebRtcEndpoint = screenWebRtcEndpoint;
 		} else {
-			stream.viewers.set(socketId, { id: socketId, screenWebRtcEndpoint, webcamWebRtcEndpoint: null, socket });
+			stream.viewers.set(socketId, {
+				id: socketId, screenWebRtcEndpoint, webcamWebRtcEndpoint: null, socket, userId
+			});
 			viewers.set(socketId, streamId);
 			await joinRoom(stream, socket);
 		}
@@ -225,7 +230,9 @@ export async function startViewer(streamId: string, socket: Socket, type: 'scree
 		if (viewer) {
 			viewer.webcamWebRtcEndpoint = webcamWebRtcEndpoint;
 		} else {
-			stream.viewers.set(socketId, { id: socketId, webcamWebRtcEndpoint, screenWebRtcEndpoint: null, socket });
+			stream.viewers.set(socketId, {
+				id: socketId, webcamWebRtcEndpoint, screenWebRtcEndpoint: null, socket, userId
+			});
 			viewers.set(socketId, streamId);
 			await joinRoom(stream, socket);
 		}

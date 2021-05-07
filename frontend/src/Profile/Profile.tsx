@@ -10,10 +10,7 @@ interface IState {
     profile?: {
         fullName?: string;
         nickname?: string;
-        avatar?: {
-            contentType?: string,
-            data?: string
-        };
+        avatar?: string;
     };
     oldPassword?: string;
     newPassword?: string;
@@ -22,11 +19,12 @@ interface IState {
         oldPasswordError?: string;
         passwordMissmatchError?: string;
     };
-    newAvatarPath?: string;
+    lastAvatarUpdate?: number;
 }
 
 interface IProps {
     token?: string;
+    showNotification: (type: 'info' | 'error' | 'success', text: string, notificationTimeout?: number) => void;
 }
 
 export default class Profile extends React.Component<IProps, IState> {
@@ -40,8 +38,7 @@ export default class Profile extends React.Component<IProps, IState> {
             oldPassword: '',
             newPassword: '',
             newPasswordRepeat: '',
-            fieldsError: {},
-            newAvatarPath: ''
+            fieldsError: {}
         }
         this.handleInputChange = this.handleInputChange.bind(this);
         this.submitForm = this.submitForm.bind(this);
@@ -71,7 +68,7 @@ export default class Profile extends React.Component<IProps, IState> {
                 profile: {
                     fullName: data.user.name,
                     nickname: data.user.login,
-                    avatar: data.user.avatar
+                    avatar: `https://${serverAddress}/user/${data.user.login}/avatar`
                 }
             });
         } catch (err) {
@@ -97,7 +94,7 @@ export default class Profile extends React.Component<IProps, IState> {
                 profile: {
                     fullName: data.user.name,
                     nickname: data.user.login,
-                    avatar: data.user.avatar
+                    avatar: `https://${serverAddress}/user/${data.user.login}/avatar`
                 }
             });
         } catch (err) {
@@ -121,7 +118,7 @@ export default class Profile extends React.Component<IProps, IState> {
                 profile: {
                     fullName: data.user.name,
                     nickname: data.user.login,
-                    avatar: data.user.avatar
+                    avatar: `https://${serverAddress}/user/${data.user.login}/avatar${this.state.profile?.avatar?.substr(this.state.profile?.avatar?.length - 1) === '/' ? '' : '/' }`
                 }
             });
         } catch (err) {
@@ -157,7 +154,6 @@ export default class Profile extends React.Component<IProps, IState> {
         }
         const oldPassword = this.state.oldPassword;
         const newPassword = this.state.newPassword;
-        const avatar = this.state.newAvatarPath;
         await this.updateUser({
             oldPassword,
             newPassword
@@ -194,11 +190,7 @@ export default class Profile extends React.Component<IProps, IState> {
         const view = (
             <div className="profile_content">
                 <div className="profile_content_information">
-                        <img src={
-                                this.state.profile?.avatar?.data === undefined || this.state.profile?.avatar?.data?.length === 0 ?
-                                'https://static-cdn.jtvnw.net/jtv_user_pictures/fc144fea-e5b3-4ee6-bb38-60784be23877-profile_image-300x300.png' :
-                                `data:${this.state.profile?.avatar?.contentType};base64,${Buffer.from(this.state.profile?.avatar?.data).toString('base64')}`
-                            } 
+                        <img src={this.state.profile?.avatar} 
                             className="profile_content_information_avatar"/>
                         <div className="profile_content_information_names">
                             <h1> { this.state.profile?.fullName } </h1>
@@ -255,7 +247,7 @@ export default class Profile extends React.Component<IProps, IState> {
     render(): JSX.Element {
         return (
             <div className="window">
-                <NavBar currentItem={3}/>
+                <NavBar currentTab={2} showNotification={this.props.showNotification}/>
                 { 
                     this.state.isLoading ? this.loading() :
                         this.state.loadingError !== undefined ? this.error() :

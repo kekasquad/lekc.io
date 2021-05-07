@@ -5,6 +5,7 @@ interface IProps {
     userName: string;
     text: string;
     date: string;
+    avatar: string;
     isPresenterMessage: boolean;
 }
 
@@ -16,17 +17,20 @@ export default class ChatMessage extends React.Component<IProps, IState> {
     render() {
         const date: Date = new Date(this.props.date);
         return (
-            <div className={'ChatMessage-component' + (this.props.isPresenterMessage ? ' presenter_message' : '')}>
-                <div className='ChatMessage-username_block'>
-                    <h5>{(this.props.isPresenterMessage ? '👑 ' : '') + this.props.userName}</h5>
-                </div>
-                <div className='ChatMessage-text_block'>
-                    <p>{this.props.text}</p>
-                </div>
-                <div className='ChatMessage-date_block'>
-                    <span>
-                        {`${date.getHours()}:${date.getMinutes()}:${date.getSeconds()}`}
-                    </span>
+            <div className='ChatMessage-component'>
+                <img className='ChatMessage-component_krujochek' src={this.props.avatar}/>
+                <div className={'ChatMessage-component_message' + (this.props.isPresenterMessage ? ' presenter_message' : '')}>
+                    <div className='ChatMessage-username_block'>
+                        <h5>{(this.props.isPresenterMessage ? '👑 ' : '') + this.props.userName}</h5>
+                    </div>
+                    <div className='ChatMessage-text_block'>
+                        <p>{this.props.text}</p>
+                    </div>
+                    <div className='ChatMessage-date_block'>
+                        <span>
+                            {`${date.getHours()}:${date.getMinutes()}:${date.getSeconds()}`}
+                        </span>
+                    </div>
                 </div>
             </div>
         );

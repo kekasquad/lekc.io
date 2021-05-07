@@ -4,11 +4,19 @@ import passportLocalMongoose from 'passport-local-mongoose';
 export interface User extends PassportLocalDocument  {
     login: string;
     name: string;
-    avatar: {
-        data: Buffer,
-        contentType: string
-    };
 }
+
+export interface UserAvatar {
+    avatar: {
+        data: Buffer, 
+        contentType: string
+    }
+}
+
+const avatarSchema = new Schema({
+    data: Buffer, 
+    contentType: String
+});
 
 const userSchema = new Schema({
     login: {
@@ -20,7 +28,8 @@ const userSchema = new Schema({
         type: String            
     },
     avatar: {
-        data: Buffer, contentType: String
+        type: avatarSchema,
+        select: false
     }
 }) as PassportLocalSchema;
 

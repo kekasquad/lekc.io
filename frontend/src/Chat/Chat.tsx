@@ -10,6 +10,7 @@ interface Message {
     userName: string;
     text: string;
     date: string;
+    avatar: string;
     isPresenterMessage: boolean;
 }
 
@@ -37,6 +38,12 @@ class Chat extends React.Component<IProps, IState> {
             messageInputText: ''
         };
 
+        this.handleMessageInputChange = this.handleMessageInputChange.bind(this);
+        this.handleEnterPress = this.handleEnterPress.bind(this);
+        this.sendMessage = this.sendMessage.bind(this);
+    }
+
+    componentDidMount() {
         fetch(`https://${serverAddress}/user`, {
             headers: {
                 'Content-Type': 'application/json',
@@ -44,29 +51,24 @@ class Chat extends React.Component<IProps, IState> {
             }
         })
             .then(res => res.json())
-            .then(res => {this.setState({ userName: res.user.login })})
+            .then(res => {
+                this.setState({ userName: res.user.login });
+                this.props.socket.on('receiveChatMessage',
+                    (streamId: string, senderSocketId: string, userName: string, message: string, date: string) => {
+                        console.log('Message received', date);
+                        if (streamId !== this.props.streamId) { return; }
+                        console.log('Message received');
+
+                        this.setState({
+                            messages: [
+                                ...this.state.messages,
+                                { userName, text: message, date, avatar: `https://${serverAddress}/user/${userName}/avatar`, isPresenterMessage: senderSocketId === streamId }
+                            ]
+                        });
+                    }
+                );
+            })
             .catch(() => this.props.history.push('/login'));
-
-        this.handleMessageInputChange = this.handleMessageInputChange.bind(this);
-        this.handleEnterPress = this.handleEnterPress.bind(this);
-        this.sendMessage = this.sendMessage.bind(this);
-    }
-
-    componentDidMount() {
-        this.props.socket.on('receiveChatMessage',
-            (streamId: string, senderSocketId: string, userName: string, message: string, date: string) => {
-                console.log('Message received', date);
-                if (streamId !== this.props.streamId) { return; }
-                console.log('Message received');
-
-                this.setState({
-                    messages: [
-                        ...this.state.messages,
-                        { userName, text: message, date, isPresenterMessage: senderSocketId === streamId }
-                    ]
-                });
-            }
-        );
     }
 
     handleMessageInputChange(event: any): void {

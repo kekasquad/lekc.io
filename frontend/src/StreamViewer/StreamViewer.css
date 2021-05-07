@@ -1,4 +1,4 @@
-.StreamViewer-window_container, .StreamViewer-component, .StreamViewer-control_buttons_group,
+.StreamViewer-component, .StreamViewer-control_buttons_group,
 .StreamViewer-side_block, #StreamViewer-screen_video, #StreamViewer-webcam_video,
 .StreamViewer-chat_block {
     width: 100%;
@@ -6,14 +6,9 @@
     overflow: hidden;
 }
 
-.StreamViewer-window_container {
-    display: grid;
-    grid-template-rows: 50px 1fr;
-}
-
 .StreamViewer-component {
     display: grid;
-    grid-template-rows: minmax(0, 85%) 15%;
+    grid-template-rows: minmax(0, 90%) 10%;
 }
 
 .StreamViewer-main_area {
@@ -22,6 +17,13 @@
     display: grid;
     grid-template-columns: 75% 25%;
     grid-template-rows: minmax(0, 1fr);
+}
+
+.StreamViewer-back_button {
+    position: absolute;
+    left: 0.5rem;
+    top: 0.5rem;
+    z-index: 100;
 }
 
 .StreamViewer-control_buttons_group {
