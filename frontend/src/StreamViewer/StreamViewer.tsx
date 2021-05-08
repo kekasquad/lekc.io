@@ -110,7 +110,7 @@ class StreamViewer extends React.Component<IProps, IState> {
     }
 
     back(): void {
-        this.props.history.goBack();
+        this.props.history.push('/search');
     }
 
     render(): JSX.Element {
