@@ -4,7 +4,7 @@ import Auth from '../Auth/Auth';
 import StreamPresenter from '../StreamPresenter/StreamPresenter';
 import StreamViewer from '../StreamViewer/StreamViewer';
 import Profile from '../Profile/Profile';
-import { Redirect, Route, Switch, withRouter } from 'react-router';
+import { Redirect, Route, Switch, useHistory, withRouter } from 'react-router';
 import Search from '../Search/Search';
 import useToken from './useToken';
 import Notification from '../Notification/Notification';
@@ -19,28 +19,13 @@ interface IState {
 
 function App() {
     const {token, setToken} = useToken();
+    const history = useHistory();
     const [notification, setNotification] = useState<IState>({
         type: 'info',
         text: '',
         show: false,
         timeout: null
     });
-
-    useEffect(() => {
-        fetch(`https://${serverAddress}/user`, {
-          "method": "GET",
-          "headers": {
-            'Content-Type': 'application/json',
-            "Authorization": `Bearer ${token}`
-          }
-        }).then(response => {
-          if (response.status !== 200) {
-            setToken('');
-          }
-        }).catch(err => {
-    
-        });
-      });
 
     const showNotification = (
         type: 'info' | 'error' | 'success', text: string,
@@ -57,6 +42,23 @@ function App() {
             setNotification({ type, text, show: true, timeout });
         }
     };
+
+    useEffect(() => {
+        fetch(`https://${serverAddress}/user`, {
+          "method": "GET",
+          "headers": {
+            'Content-Type': 'application/json',
+            "Authorization": `Bearer ${token}`
+          }
+        }).then(response => {
+          if (response.status !== 200) {
+            setToken('');
+          }
+        }).catch(err => {
+            showNotification('error', 'Authentication error');
+            setTimeout(() => history.push('/login'), NOTIFICATION_TIMEOUT);
+        });
+      });
 
     const closeNotification = () => {
         if (notification.timeout) {
