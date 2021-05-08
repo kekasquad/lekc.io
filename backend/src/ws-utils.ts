@@ -2,6 +2,7 @@ import kurento, { MediaPipeline, WebRtcEndpoint } from 'kurento-client';
 import { Socket } from 'socket.io';
 import { wsUri } from './config/constants';
 import { wsServer } from './index';
+import { User } from './models/User';
 
 interface Presenter {
     id: string;
@@ -23,6 +24,7 @@ interface Viewer {
 
 interface Stream {
 	id: string;
+	name: string;
 	presenter: Presenter;
 	viewers: Map<string, Viewer>;
 	screenCandidatesQueue: Map<string, RTCIceCandidate[]>;
@@ -76,6 +78,7 @@ export async function startPresenter(socket: Socket, userId: string, type: 'scre
 	if (!stream) {
 		stream = {
 			id: socketId,
+			name: '',
 			presenter: {
 				id: socketId,
 				userId,
@@ -337,10 +340,19 @@ export function onChatMessage(socket: Socket, streamId: string, userName: string
 	wsServer.in(streamId).emit('receiveChatMessage', streamId, socket.id, userName, message, new Date());
 }
 
+export function changeStreamName(streamId: string, streamName: string, user: User): void {
+	const stream: Stream | undefined = streamRooms.get(streamId);
+	if (!stream || !stream.presenter.userId === user._id || stream.name == streamName) { return; }
+
+	stream.name = streamName;
+	wsServer.in(streamId).emit('streamName', streamId, stream.name);
+}
+
 async function joinRoom(stream: Stream, socket: Socket): Promise<void> {
 	await socket.join(stream.id);
 	socket.to(stream.id).emit('viewersCount', stream.viewers.size);
 	socket.emit('viewersCount', stream.viewers.size);
+	socket.emit('streamName', stream.id, stream.name);
 }
 
 async function leaveRoom(stream: Stream, socket: Socket): Promise<void> {
