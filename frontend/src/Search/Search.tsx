@@ -3,18 +3,18 @@ import './Search.css';
 import NavBar from '../NavBar/NavBar';
 
 const searchResult = [
-    { avatar: "https://randomuser.me/api/portraits/women/24.jpg", name: "Loretta Snyder", views: 3 },
-    { avatar: "https://randomuser.me/api/portraits/men/88.jpg", name: "Gordon Matthews", views: 4421 },
-    { avatar: "https://randomuser.me/api/portraits/men/29.jpg", name: "Franklin Cook", views: 321 },
-    { avatar: "https://randomuser.me/api/portraits/women/40.jpg", name: "Pamela Stewart", views: 412 },
-    { avatar: "https://randomuser.me/api/portraits/women/50.jpg", name: "Terri Peterson", views: 421 },
-    { avatar: "https://randomuser.me/api/portraits/women/61.jpg", name: "Hilda Reynolds", views: 12 },
-    { avatar: "https://randomuser.me/api/portraits/women/24.jpg", name: "Loretta Snyder", views: 3 },
-    { avatar: "https://randomuser.me/api/portraits/men/88.jpg", name: "Gordon Matthews", views: 4421 },
-    { avatar: "https://randomuser.me/api/portraits/men/29.jpg", name: "Franklin Cook", views: 321 },
-    { avatar: "https://randomuser.me/api/portraits/women/40.jpg", name: "Pamela Stewart", views: 412 },
-    { avatar: "https://randomuser.me/api/portraits/women/50.jpg", name: "Terri Peterson", views: 421 },
-    { avatar: "https://randomuser.me/api/portraits/women/61.jpg", name: "Hilda Reynolds", views: 12 }
+    { avatar: 'https://randomuser.me/api/portraits/women/24.jpg', name: 'Loretta Snyder', views: 3 },
+    { avatar: 'https://randomuser.me/api/portraits/men/88.jpg', name: 'Gordon Matthews', views: 4421 },
+    { avatar: 'https://randomuser.me/api/portraits/men/29.jpg', name: 'Franklin Cook', views: 321 },
+    { avatar: 'https://randomuser.me/api/portraits/women/40.jpg', name: 'Pamela Stewart', views: 412 },
+    { avatar: 'https://randomuser.me/api/portraits/women/50.jpg', name: 'Terri Peterson', views: 421 },
+    { avatar: 'https://randomuser.me/api/portraits/women/61.jpg', name: 'Hilda Reynolds', views: 12 },
+    { avatar: 'https://randomuser.me/api/portraits/women/24.jpg', name: 'Loretta Snyder', views: 3 },
+    { avatar: 'https://randomuser.me/api/portraits/men/88.jpg', name: 'Gordon Matthews', views: 4421 },
+    { avatar: 'https://randomuser.me/api/portraits/men/29.jpg', name: 'Franklin Cook', views: 321 },
+    { avatar: 'https://randomuser.me/api/portraits/women/40.jpg', name: 'Pamela Stewart', views: 412 },
+    { avatar: 'https://randomuser.me/api/portraits/women/50.jpg', name: 'Terri Peterson', views: 421 },
+    { avatar: 'https://randomuser.me/api/portraits/women/61.jpg', name: 'Hilda Reynolds', views: 12 }
 ];
 
 interface Streamer {
@@ -89,14 +89,14 @@ export default class Search extends React.Component<IProps, IState> {
 
     streams(): JSX.Element {
         const streams = this.state.data.map((item: any, index: number) =>
-            <div key={index} className="item_stream">
-                <img src={item.avatar} className="item_stream_avatar"/>
+            <div key={index} className='Search-stream_item'>
+                <img src={item.avatar} className='Search-stream_item_avatar'/>
                 {item.name}
             </div>
         );
         return (
-            <div className="item_list">
-                { "Found " + this.state.data.length + " " + (this.state.data.length === 1 ? "stream" : "streams") }
+            <div className='Search-stream_list'>
+                { 'Found ' + this.state.data.length + ' ' + (this.state.data.length === 1 ? 'stream' : 'streams') }
                 {streams}
             </div>
         );
@@ -104,18 +104,18 @@ export default class Search extends React.Component<IProps, IState> {
 
     render(): JSX.Element {
         return (
-            <div className="window">
+            <div className='Search-component'>
                 <NavBar currentTab={0} showNotification={this.props.showNotification}/>
-                <div className="search_container">
-                    <span className="search_title">Search by author or name</span>
-                    <div className="search_inputs">
+                <div className='Search-search_container'>
+                    <span className='Search-search_title'>Search by author or name</span>
+                    <div className='Search-search_inputs'>
                         <input type='text' name='searchQuery'
                             value={this.state.searchQuery}
                             onChange={this.handleInputChange}/>
-                        <button className='search_btn text_btn' onClick={ () => this.onSearchClick() }>Search</button>
+                        <button className='Search-search_btn' onClick={ () => this.onSearchClick() }>Search</button>
                     </div>
                 </div>
-                <div className="search_container_results">
+                <div className='Search-search_container_results'>
                     { 
                         this.state.isLoading === true ? this.loading() : 
                             this.state.errorLoading !== undefined ? this.error() : 

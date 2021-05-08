@@ -1,10 +1,10 @@
 @import '../variables.css';
 
-.window {
+.Search-component {
     width: 100%;
 }
 
-.search_container {
+.Search-search_container {
     margin: auto;
     width: 50%;
     display: flex;
@@ -13,18 +13,18 @@
     align-items: center;
 }
 
-.search_container_results {
+.Search-search_container_results {
     margin: auto;
     width: 50%;
 }
 
-.search_inputs {
+.Search-search_inputs {
     width: 100%;
     display: flex;
     flex-direction: row;
 }
 
-.item_stream {
+.Search-stream_item {
     margin: auto;
     width: 60%;
     display: flex;
@@ -32,13 +32,13 @@
     align-items: center;
 }
 
-.search_title {
+.Search-search_title {
     margin-top: 3rem;
     margin-bottom: 1.5rem;
     font-size: 24px;
 }
 
-.item_stream_avatar {
+.Search-stream_item_avatar {
     height: 5rem;
     width: 5rem;
     vertical-align: middle;
@@ -47,12 +47,12 @@
     border-radius: 50%;
 }
 
-.search_container input {
+.Search-search_container input {
     width: 80%;
     margin: 0.5rem auto;
 }
 
-.search_btn {
+.Search-search_btn {
     margin-top: 0.5rem;
     width: 10%;
     height: 30px;

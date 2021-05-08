@@ -54,7 +54,7 @@ function App() {
           if (response.status !== 200) {
             setToken('');
           }
-        }).catch(err => {
+        }).catch(() => {
             showNotification('error', 'Authentication error');
             setTimeout(() => history.push('/login'), NOTIFICATION_TIMEOUT);
         });
