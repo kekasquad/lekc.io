@@ -43,21 +43,22 @@ class Search extends React.Component<IProps, IState> {
         this.streams = this.streams.bind(this);
     }
 
+    componentDidMount() {
+        this.setState({ isLoading: true });
+        this.loadStreams(true).then(() => {});
+    }
+
     handleQueryInputChange(event: React.ChangeEvent<HTMLInputElement>): void {
         this.setState({ searchQuery: event.target.value });
     }
 
-    async onSearchClick() {
-        this.setState({
-            isLoading: true,
-            isInitial: false,
-            searchResults: []
-        });
-
+    async loadStreams(showOnlyTopByViewers:boolean = false) {
         const headers: any = {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${localStorage.getItem('token')}`
         };
+
+        this.setState({ isLoading: true });
 
         try {
             let streams: any[] = await (await fetch(`https://${serverAddress}/streams`, { headers })).json();
@@ -80,6 +81,14 @@ class Search extends React.Component<IProps, IState> {
         } catch (error) {
             this.props.showNotification('error', 'Failed to fetch search results');
         }
+    }
+
+    async onSearchClick() {
+        this.setState({
+            isInitial: false,
+            searchResults: []
+        });
+        await this.loadStreams();
     }
 
     loading(): JSX.Element {
@@ -126,12 +135,13 @@ class Search extends React.Component<IProps, IState> {
                 <div className='Search-search_container'>
                     <h2>Search by author or name</h2>
                     <div className='Search-search_input_block'>
-                        <input type='text' value={this.state.searchQuery}
+                        <input type='text' value={this.state.searchQuery} size={70}
                                onChange={this.handleQueryInputChange}/>
                         <button className='common_button'
                                 onClick={this.onSearchClick}
                                 disabled={this.state.isLoading || !this.state.searchQuery}>Search</button>
                     </div>
+                    <h4>{this.state.isLoading ? '' : (this.state.isInitial ? 'Top streams' : 'Search results')}</h4>
                 </div>
                 <div className='Search-search_results_container'>
                     {
