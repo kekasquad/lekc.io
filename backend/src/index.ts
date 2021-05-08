@@ -278,7 +278,7 @@ mongoose.connect(mongoUri, {
 
             socket.on('sendChatMessage', (streamId: string, userName: string, message: string) => {
                 onChatMessage(socket, streamId, userName, message);
-            })
+            });
         }).catch(() => {
             console.log('User not found');
             socket.disconnect();

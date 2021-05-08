@@ -22,6 +22,8 @@ interface IProps {
 interface IState {
     streamId: string;
     stream: Stream | null;
+    streamName: string;
+    streamNameError: string;
     streamViewersCount: number;
     socket: Socket | null;
     screenVideo: HTMLVideoElement | null;
@@ -39,6 +41,8 @@ class StreamPresenter extends React.Component<IProps, IState> {
         this.state = {
             streamId: '',
             stream: null,
+            streamName: '',
+            streamNameError: '',
             streamViewersCount: 0,
             socket: null,
             screenVideo: null,
@@ -53,11 +57,16 @@ class StreamPresenter extends React.Component<IProps, IState> {
         this.changeWebcamMode = this.changeWebcamMode.bind(this);
         this.changeScreenMode = this.changeScreenMode.bind(this);
         this.changeAudioMode = this.changeAudioMode.bind(this);
+        this.handleStreamNameChange = this.handleStreamNameChange.bind(this);
     }
 
     componentWillUnmount() {
         this.state.socket?.disconnect();
         this.state.stream?.stop();
+    }
+
+    handleStreamNameChange(event: React.ChangeEvent<HTMLInputElement>): void {
+        this.setState({ streamName: event.target.value });
     }
 
     async startPresenter(): Promise<void> {
@@ -76,6 +85,10 @@ class StreamPresenter extends React.Component<IProps, IState> {
                 document.querySelector('#StreamPresenter-webcam_video') as HTMLVideoElement;
 
             socket.on('connect_error', (err: Error) => {
+                this.props.showNotification(
+                    'error', 'Unable to start stream.' +
+                    ' It may be caused by authentication or internet errors. Please, try again', 3000
+                );
                 console.log('Socket connect error', err);
             });
 
@@ -95,6 +108,10 @@ class StreamPresenter extends React.Component<IProps, IState> {
                         }
                     );
                 } else {
+                    this.props.showNotification(
+                        'error', 'Unable to start stream.' +
+                        ' It may be caused by authentication or internet errors. Please, try again', 3000
+                    );
                     console.error('Cannot start stream');
                 }
             });
@@ -110,6 +127,7 @@ class StreamPresenter extends React.Component<IProps, IState> {
             this.state.stream.stop();
             this.state.socket?.disconnect();
             this.setState({ stream: null, socket: null, streamId: '', });
+            this.props.history.push('/');
         } else {
             console.error('No active stream');
         }
@@ -146,66 +164,90 @@ class StreamPresenter extends React.Component<IProps, IState> {
         return (
             <div className='StreamPresenter-window_container'>
                 <NavBar currentTab={1} showNotification={this.props.showNotification}/>
-                <div className="StreamPresenter-component">
-                    <div className='StreamPresenter-main_area'>
-                        <video id='StreamPresenter-screen_video' autoPlay={true}></video>
-                        <div className='StreamPresenter-side_block'>
-                            <video id='StreamPresenter-webcam_video' autoPlay={true}></video>
-                            <div className='StreamPresenter-chat_block'>
-                                { this.state.stream && this.state.socket ?
+                {
+                    this.state.stream ?
+                    <div className="StreamPresenter-component">
+                        <div className='StreamPresenter-main_area'>
+                            <video id='StreamPresenter-screen_video' autoPlay={true}></video>
+                            <div className='StreamPresenter-side_block'>
+                                <video id='StreamPresenter-webcam_video' autoPlay={true}></video>
+                                <div className='StreamPresenter-chat_block'>
+                                    { this.state.stream && this.state.socket ?
                                         <Chat socket={this.state.socket} streamId={this.state.streamId}/> : '' }
+                                </div>
                             </div>
                         </div>
-                    </div>
 
-                    <div className='StreamPresenter-control_buttons_group'>
-                        {
-                            this.state.stream ?
-                                <button id='StreamPresenter-start_stop_button'
-                                        className='common_button red_button'
-                                        onClick={ this.stop }>Stop presenting</button> :
-                                <button id='StreamPresenter-start_stop_button'
-                                        className='common_button'
-                                        onClick={ this.startPresenter }>Start presenting</button>
-                        }
-                        {
-                            this.state.stream ?
-                                <button className={ `round_button ${this.state.webcamEnabled ? 'green_button' : 'red_button'}` }
-                                        onClick={ this.changeWebcamMode }>
-                                    <img src={webcamTurnButton} alt='Turn on/off webcam'/>
-                                </button> : ''
-                        }
-                        {
-                            this.state.stream ?
-                                <button className={ `round_button ${this.state.screenEnabled ? 'green_button' : 'red_button'}` }
-                                        onClick={ this.changeScreenMode }>
-                                    <img src={screenTurnButton} alt='Turn on/off screen sharing'/>
-                                </button> : ''
-                        }
-                        {
-                            this.state.stream ?
-                                <button className={ `round_button ${this.state.audioEnabled ? 'green_button' : 'red_button'}` }
-                                        onClick={ this.changeAudioMode }>
-                                    <img src={microTurnButton} alt='Turn on/off micro'/>
-                                </button> : ''
-                        }
-                        {
-                            this.state.stream ?
-                                <div className='StreamPresenter-stream_id_block'>
-                                    <span>Stream ID: </span>
-                                    <input type='text' value={this.state.streamId} readOnly={true} />
-                                    <span>Stream Link: {`${window.location.origin}/stream/${this.state.streamId}`}</span>
-                                </div> : ''
-                        }
-                        {
-                            this.state.stream ?
-                                <div className='StreamPresenter-viewers_count_block'>
-                                    <img className='StreamPresenter-viewers_icon' src={viewersIcon}/>
-                                    <span>{ this.state.streamViewersCount }</span>
-                                </div> : ''
-                        }
+                        <div className='StreamPresenter-control_buttons_group'>
+                            <button id='StreamPresenter-start_stop_button'
+                                    className='common_button red_button'
+                                    onClick={ this.stop }>Stop stream</button>
+                            <button className={ `round_button ${this.state.webcamEnabled ? 'green_button' : 'red_button'}` }
+                                    onClick={ this.changeWebcamMode }>
+                                <img src={webcamTurnButton} alt='Turn on/off webcam'/>
+                            </button>
+                            <button className={ `round_button ${this.state.screenEnabled ? 'green_button' : 'red_button'}` }
+                                    onClick={ this.changeScreenMode }>
+                                <img src={screenTurnButton} alt='Turn on/off screen sharing'/>
+                            </button>
+                            <button className={ `round_button ${this.state.audioEnabled ? 'green_button' : 'red_button'}` }
+                                    onClick={ this.changeAudioMode }>
+                                <img src={microTurnButton} alt='Turn on/off micro'/>
+                            </button>
+                            <div className='StreamPresenter-stream_id_block'>
+                                <span>Stream ID: </span>
+                                <input type='text' value={this.state.streamId} readOnly={true} />
+                                <span>Stream Link: {`${window.location.origin}/stream/${this.state.streamId}`}</span>
+                            </div>
+                            <div className='StreamPresenter-viewers_count_block'>
+                                <img className='StreamPresenter-viewers_icon' src={viewersIcon}/>
+                                <span>{ this.state.streamViewersCount }</span>
+                            </div>
+                        </div>
+                    </div> :
+
+                    <div className='StreamPresenter-stream_create_component'>
+                        <div className='StreamPresenter-stream_name_block'>
+                            <div className='StreamPresenter-stream_name_form'>
+                                <label>Stream name*<span className="form_error">{this.state.streamNameError}</span>
+                                </label>
+                                <input
+                                    type='text' name='login'
+                                    value={this.state.streamName}
+                                    onChange={this.handleStreamNameChange}/>
+                            </div>
+                        </div>
+                        <div className='StreamPresenter-stream_settings_block'>
+                            <h3>Preview</h3>
+                            <div className='StreamPresenter-webcam_preview_block'>
+                                <div className='StreamPresenter-webcam_preview_container'>
+                                    <video id='StreamPresenter-webcam_preview_video' autoPlay={true}></video>
+                                </div>
+                                <div className='StreamPresenter-settings_controls_block'>
+                                    <button className={ `round_button ${this.state.webcamEnabled ? 'green_button' : 'red_button'}` }
+                                            onClick={ this.changeWebcamMode }>
+                                        <img src={webcamTurnButton} alt='Turn on/off webcam'/>
+                                    </button>
+                                    <button className={ `round_button ${this.state.screenEnabled ? 'green_button' : 'red_button'}` }
+                                            onClick={ this.changeScreenMode }>
+                                        <img src={screenTurnButton} alt='Turn on/off screen sharing'/>
+                                    </button>
+                                    <button className={ `round_button ${this.state.audioEnabled ? 'green_button' : 'red_button'}` }
+                                            onClick={ this.changeAudioMode }>
+                                        <img src={microTurnButton} alt='Turn on/off micro'/>
+                                    </button>
+                                </div>
+                            </div>
+                            <div className='StreamPresenter-screen_preview_block'>
+                                <video id='StreamPresenter-screen_preview_video' autoPlay={true}></video>
+                            </div>
+                        </div>
+                        <div className='StreamPresenter-create_component_footer'>
+                            <button className='common_button green_button'
+                                    disabled={!this.state.streamName}>Start stream</button>
+                        </div>
                     </div>
-                </div>
+                }
             </div>
         );
     }
