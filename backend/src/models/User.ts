@@ -23,7 +23,8 @@ const userSchema = new Schema({
         unique: true
     },
     name: {
-        type: String            
+        type: String,
+        required: true,
     },
     avatar: {
         type: avatarSchema,
