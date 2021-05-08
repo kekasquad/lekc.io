@@ -25,7 +25,6 @@ interface IState {
     searchQuery?: string;
     isInitial?: boolean;
     isLoading?: boolean;
-    errorLoading?: Error;
     searchResults: StreamItem[];
 }
 
@@ -36,10 +35,12 @@ class Search extends React.Component<IProps, IState> {
             searchQuery: '',
             isLoading: false,
             isInitial: true,
-            errorLoading: undefined,
             searchResults: []
         };
         this.handleQueryInputChange = this.handleQueryInputChange.bind(this);
+        this.onSearchClick = this.onSearchClick.bind(this);
+        this.loading = this.loading.bind(this);
+        this.streams = this.streams.bind(this);
     }
 
     handleQueryInputChange(event: React.ChangeEvent<HTMLInputElement>): void {
@@ -50,7 +51,6 @@ class Search extends React.Component<IProps, IState> {
         this.setState({
             isLoading: true,
             isInitial: false,
-            errorLoading: undefined,
             searchResults: []
         });
 
@@ -75,7 +75,6 @@ class Search extends React.Component<IProps, IState> {
             }));
             this.setState({
                 isLoading: false,
-                errorLoading: undefined,
                 searchResults: streams
             });
         } catch (error) {
@@ -85,21 +84,20 @@ class Search extends React.Component<IProps, IState> {
 
     loading(): JSX.Element {
         return (
-            <div>
-                loading...
-            </div>
-        );
-    }
-
-    error(): JSX.Element {
-        return (
-            <div>
-                error
+            <div className='Search-placeholder'>
+                <h3>Loading...</h3>
             </div>
         );
     }
 
     streams(): JSX.Element {
+        if (this.state.searchResults.length === 0) {
+            return (
+                <div className='Search-placeholder'>
+                    <h3>No streams found :(</h3>
+                </div>
+            );
+        }
         const streams = this.state.searchResults.map((item: StreamItem, index: number) =>
             <div key={index} className='Search-stream_item'
                  onClick={() => this.props.history.push(`/stream/${item.id}`)}>
@@ -117,9 +115,7 @@ class Search extends React.Component<IProps, IState> {
             </div>
         );
         return (
-            <div className='Search-stream_list'>
-                {streams}
-            </div>
+            <div className='Search-stream_list'>{streams}</div>
         );
     }
 
@@ -132,16 +128,17 @@ class Search extends React.Component<IProps, IState> {
                     <div className='Search-search_input_block'>
                         <input type='text' value={this.state.searchQuery}
                                onChange={this.handleQueryInputChange}/>
-                        <button className='common_button' onClick={ () => this.onSearchClick() }>Search</button>
+                        <button className='common_button'
+                                onClick={this.onSearchClick}
+                                disabled={this.state.isLoading || !this.state.searchQuery}>Search</button>
                     </div>
                 </div>
                 <div className='Search-search_results_container'>
-                    {/*{ */}
-                    {/*    this.state.isLoading === true ? this.loading() : */}
-                    {/*        this.state.errorLoading !== undefined ? this.error() : */}
-                    {/*        this.state.isInitial ? <div/> : this.streams() */}
-                    {/*}*/}
-                    {this.streams()}
+                    {
+                        this.state.isLoading ?
+                        this.loading() :
+                        this.streams()
+                    }
                 </div>
             </div>
         );

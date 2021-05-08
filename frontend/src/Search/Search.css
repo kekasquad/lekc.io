@@ -1,17 +1,21 @@
 @import '../variables.css';
 
-.Search-component {
+.Search-component, .Search-search_container, .Search-search_results_container,
+.Search-loading_placeholder {
     width: 100%;
+    height: 100%;
+}
+
+.Search-component {
+    display: grid;
+    grid-template-rows: 50px auto 1fr;
 }
 
 h2 {
-    margin-top: 2rem;
-    margin-bottom: 1rem;
+    margin: 1rem;
 }
 
 .Search-search_container {
-    margin: auto;
-    width: 100%;
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -30,8 +34,11 @@ h2 {
     width: 40%;
 }
 
-.Search-search_results_container {
-    width: 100%;
+.Search-placeholder {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding-top: 2rem;
 }
 
 .Search-stream_list {
