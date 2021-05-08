@@ -50,7 +50,12 @@ h2 {
     flex-direction: row;
     align-items: center;
     column-gap: 0.5rem;
+    padding: 0.5rem;
+}
 
+.Search-stream_item:hover {
+    background-color: var(--light-light-grey);
+    cursor: default;
 }
 
 .Search-stream_item-avatar {

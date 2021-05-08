@@ -2,30 +2,22 @@ import React from 'react';
 import './Search.css';
 import NavBar from '../NavBar/NavBar';
 import viewersIcon from '../assets/viewers-icon.png';
+import { serverAddress } from '../constants';
+import { withRouter } from 'react-router';
+import { History, Location } from 'history';
 
 interface StreamItem {
+    id: string;
     avatar: string;
     presenterName: string;
     streamName: string;
-    viewersCount: number
+    viewersCount: number;
 }
 
-const searchResult: StreamItem[] = [
-    { avatar: 'https://randomuser.me/api/portraits/women/24.jpg', presenterName: 'Loretta Snyder Loretta Snyder Loretta Snyder Loretta Snyder', streamName: 'Dancing', viewersCount: 3 },
-    { avatar: 'https://randomuser.me/api/portraits/men/88.jpg', presenterName: 'Gordon Matthews', streamName: 'Just Chatting', viewersCount: 4421 },
-    { avatar: 'https://randomuser.me/api/portraits/men/29.jpg', presenterName: 'Franklin Cook', streamName: 'Sunday vlog', viewersCount: 321 },
-    { avatar: 'https://randomuser.me/api/portraits/women/40.jpg', presenterName: 'Pamela Stewart', streamName: 'Films', viewersCount: 412 },
-    { avatar: 'https://randomuser.me/api/portraits/women/50.jpg', presenterName: 'Terri Peterson', streamName: 'WWWWWWWWWWWWWWWWWWWWWWWWWW WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW', viewersCount: 421 },
-    { avatar: 'https://randomuser.me/api/portraits/women/61.jpg', presenterName: 'Hilda Reynolds', streamName: 'Watching The International 3 replays Watching The International 3 replays Watching The International 3 replays', viewersCount: 12 },
-    { avatar: 'https://randomuser.me/api/portraits/women/24.jpg', presenterName: 'Loretta Snyder', streamName: 'Sample name', viewersCount: 3 },
-    { avatar: 'https://randomuser.me/api/portraits/men/88.jpg', presenterName: 'Gordon Matthews', streamName: 'Rocket League Grand Champion', viewersCount: 4421 },
-    { avatar: 'https://randomuser.me/api/portraits/men/29.jpg', presenterName: 'Franklin Cook', streamName: 'Studying Python together', viewersCount: 321 },
-    { avatar: 'https://randomuser.me/api/portraits/women/40.jpg', presenterName: 'Pamela Stewart', streamName: 'Python sucks', viewersCount: 412 },
-    { avatar: 'https://randomuser.me/api/portraits/women/50.jpg', presenterName: 'Terri Peterson', streamName: 'Raquel is talking', viewersCount: 421 },
-    { avatar: 'https://randomuser.me/api/portraits/women/61.jpg', presenterName: 'Hilda Reynolds', streamName: 'Hilda #2', viewersCount: 12 }
-];
-
 interface IProps {
+    history: History;
+    location: Location;
+    match: any;
     showNotification: (type: 'info' | 'error' | 'success', text: string, notificationTimeout?: number) => void;
 }
 
@@ -34,10 +26,10 @@ interface IState {
     isInitial?: boolean;
     isLoading?: boolean;
     errorLoading?: Error;
-    data: StreamItem[];
+    searchResults: StreamItem[];
 }
 
-export default class Search extends React.Component<IProps, IState> {
+class Search extends React.Component<IProps, IState> {
     constructor(props: IProps) {
         super(props);
         this.state = {
@@ -45,7 +37,7 @@ export default class Search extends React.Component<IProps, IState> {
             isLoading: false,
             isInitial: true,
             errorLoading: undefined,
-            data: []
+            searchResults: []
         };
         this.handleQueryInputChange = this.handleQueryInputChange.bind(this);
     }
@@ -54,20 +46,41 @@ export default class Search extends React.Component<IProps, IState> {
         this.setState({ searchQuery: event.target.value });
     }
 
-    onSearchClick() {
+    async onSearchClick() {
         this.setState({
             isLoading: true,
             isInitial: false,
             errorLoading: undefined,
-            data: []
+            searchResults: []
         });
-        setTimeout(() => { 
+
+        const headers: any = {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+        };
+
+        try {
+            let streams: any[] = await (await fetch(`https://${serverAddress}/streams`, { headers })).json();
+            streams = await Promise.all(streams.map(async stream => {
+                const user = await (
+                    await fetch(`https://${serverAddress}/user/${stream.presenterId}`, { headers })
+                ).json();
+                return {
+                    id: stream.id,
+                    avatar: `https://${serverAddress}/user/${user.user.login}/avatar`,
+                    presenterName: user.user.name,
+                    streamName: stream.name,
+                    viewersCount: stream.viewersCount
+                }
+            }));
             this.setState({
                 isLoading: false,
                 errorLoading: undefined,
-                data: searchResult
+                searchResults: streams
             });
-        }, 2000);
+        } catch (error) {
+            this.props.showNotification('error', 'Failed to fetch search results');
+        }
     }
 
     loading(): JSX.Element {
@@ -87,8 +100,9 @@ export default class Search extends React.Component<IProps, IState> {
     }
 
     streams(): JSX.Element {
-        const streams = this.state.data.map((item: StreamItem, index: number) =>
-            <div key={index} className='Search-stream_item'>
+        const streams = this.state.searchResults.map((item: StreamItem, index: number) =>
+            <div key={index} className='Search-stream_item'
+                 onClick={() => this.props.history.push(`/stream/${item.id}`)}>
                 <img src={item.avatar} className='Search-stream_item-avatar'/>
                 <div className='Search-stream_item-stream_info_block'>
                     <div className='Search-stream_item-stream_name_block'>
@@ -132,5 +146,6 @@ export default class Search extends React.Component<IProps, IState> {
             </div>
         );
     }
-
 }
+
+export default withRouter(Search);
