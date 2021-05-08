@@ -11,7 +11,7 @@ import PassportJwt from 'passport-jwt';
 import { Server, Socket } from 'socket.io';
 import { certDir, PORT, mongoUri, jwtConfig } from './config/constants';
 import {
-    viewers, streamRooms, stopStream, stopViewer, startPresenter,
+    viewers, streamRooms, stopStream, stopViewer, startPresenter, changeStreamName,
     startViewer, onPresenterIceCandidate, onViewerIceCandidate, onChatMessage
 } from './ws-utils';
 import { User, UserAvatar, UserModel } from './models/User';
@@ -272,7 +272,11 @@ mongoose.connect(mongoUri, {
             }
         }
 
-        UserModel.findById(userId).exec().then(() => {
+        UserModel.findById(userId).exec().then((user: User | null) => {
+            if (!user) {
+                throw 'User not found';
+            }
+
             socket.on('disconnect', async (reason: string) => {
                 console.log(`Connection ${socket.id} disconnected with reason: ${reason}`);
                 if (viewers.has(socket.id)) {
@@ -316,7 +320,11 @@ mongoose.connect(mongoUri, {
 
             socket.on('sendChatMessage', (streamId: string, userName: string, message: string) => {
                 onChatMessage(socket, streamId, userName, message);
-            })
+            });
+
+            socket.on('changeStreamName', (streamId: string, streamName: string) => {
+                changeStreamName(streamId, streamName, user);
+            });
         }).catch(() => {
             console.log('User not found');
             socket.disconnect();

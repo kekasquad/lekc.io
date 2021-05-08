@@ -23,6 +23,7 @@ interface IProps {
 interface IState {
     streamId: string;
     stream: Stream | null;
+    streamName: string;
     streamViewersCount: number;
     socket: Socket | null;
     screenVideo: HTMLVideoElement | null;
@@ -40,6 +41,7 @@ class StreamPresenter extends React.Component<IProps, IState> {
         this.state = {
             streamId: '',
             stream: null,
+            streamName: '',
             streamViewersCount: 0,
             socket: null,
             screenVideo: null,
@@ -54,6 +56,9 @@ class StreamPresenter extends React.Component<IProps, IState> {
         this.changeWebcamMode = this.changeWebcamMode.bind(this);
         this.changeScreenMode = this.changeScreenMode.bind(this);
         this.changeAudioMode = this.changeAudioMode.bind(this);
+        this.handleStreamNameInputChange = this.handleStreamNameInputChange.bind(this);
+        this.changeStreamName = this.changeStreamName.bind(this);
+        this.copyLink = this.copyLink.bind(this);
     }
 
     componentWillUnmount() {
@@ -62,6 +67,7 @@ class StreamPresenter extends React.Component<IProps, IState> {
     }
 
     async startPresenter(): Promise<void> {
+        if (!this.state.streamName) { return; }
         if (this.state.stream) {
             await this.state.stream.startPresenter();
         } else {
@@ -91,8 +97,8 @@ class StreamPresenter extends React.Component<IProps, IState> {
                             webcamVideo
                         },
                         async () => {
-                            console.log(this.state);
-                            await this.state.stream?.startPresenter()
+                            await this.state.stream?.startPresenter();
+                            this.changeStreamName();
                         }
                     );
                 } else {
@@ -102,6 +108,15 @@ class StreamPresenter extends React.Component<IProps, IState> {
 
             socket.on('viewersCount', (viewersCount: number) => {
                 this.setState({ streamViewersCount: viewersCount });
+            });
+
+            socket.on('streamName', (streamId: string, streamName: string) => {
+                if (this.state.streamId == streamId) {
+                    this.setState({ streamName });
+                    this.props.showNotification(
+                        'success', `Stream name changed to ${streamName}`, 1200
+                    );
+                }
             });
         }
     }
@@ -143,6 +158,20 @@ class StreamPresenter extends React.Component<IProps, IState> {
         }
     }
 
+    handleStreamNameInputChange(event: React.ChangeEvent<HTMLInputElement>): void {
+        this.setState({ streamName: event.target.value });
+    }
+
+    changeStreamName(): void {
+        if (!(this.state.streamName && this.state.socket)) { return; }
+        this.state.socket.emit('changeStreamName', this.state.streamId, this.state.streamName);
+    }
+
+    async copyLink(): Promise<void> {
+        await navigator.clipboard.writeText(`${window.location.origin}/stream/${this.state.streamId}`);
+        this.props.showNotification('success', 'Link is copied', 1200);
+    }
+
     render(): JSX.Element {
         return (
             <div className='StreamPresenter-window_container'>
@@ -167,8 +196,23 @@ class StreamPresenter extends React.Component<IProps, IState> {
                                         onClick={ this.stop }>Stop presenting</button> :
                                 <button id='StreamPresenter-start_stop_button'
                                         className='common_button'
-                                        onClick={ this.startPresenter }>Start presenting</button>
+                                        onClick={ this.startPresenter }
+                                        disabled={!this.state.streamName}>Start presenting</button>
                         }
+                        <div className='StreamPresenter-stream_name_block'>
+                            <span>Stream name: </span>
+                            <input className='StreamPresenter-stream_name_input'
+                                   type='text'
+                                   value={this.state.streamName}
+                                   onChange={this.handleStreamNameInputChange}
+                                   size={50}/>
+                            {
+                                this.state.stream ?
+                                    <button className='common_button small_button'
+                                            onClick={this.changeStreamName}
+                                            disabled={!this.state.streamName}>Save</button> : ''
+                            }
+                        </div>
                         {
                             this.state.stream ?
                                 <button className={ `round_button ${this.state.webcamEnabled ? 'green_button' : 'red_button'}` }
@@ -196,9 +240,7 @@ class StreamPresenter extends React.Component<IProps, IState> {
                                     <span>Stream ID: </span>
                                     <input type='text' value={this.state.streamId} readOnly={true} size={23}/>
                                     <button className='common_button small_button StreamPresenter-copy_link_button'
-                                            onClick={
-                                                () => navigator.clipboard.writeText(`${window.location.origin}/stream/${this.state.streamId}`)
-                                            }
+                                            onClick={this.copyLink}
                                             title='Copy link'>
                                         <img src={copyLinkButtonIcon}/>
                                     </button>

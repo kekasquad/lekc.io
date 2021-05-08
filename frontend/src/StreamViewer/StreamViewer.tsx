@@ -23,6 +23,7 @@ interface IProps {
 interface IState {
     streamId: string;
     stream: Stream | null;
+    streamName: string;
     streamViewersCount: number;
     socket: Socket | null;
     screenVideo: HTMLVideoElement | null;
@@ -37,6 +38,7 @@ class StreamViewer extends React.Component<IProps, IState> {
         this.state = {
             streamId: this.props.match.params.id,
             stream: null,
+            streamName: '',
             streamViewersCount: 0,
             socket: null,
             screenVideo: null,
@@ -80,6 +82,12 @@ class StreamViewer extends React.Component<IProps, IState> {
             }
         });
 
+        socket.on('streamName', (streamId: string, streamName: string) => {
+            if (this.state.streamId == streamId) {
+                this.setState({ streamName });
+            }
+        });
+
         socket.on('viewersCount', (viewersCount: number) => {
             this.setState({ streamViewersCount: viewersCount });
         });
@@ -94,8 +102,7 @@ class StreamViewer extends React.Component<IProps, IState> {
     }
 
     componentWillUnmount() {
-        this.state.socket?.disconnect();
-        this.state.stream?.stop();
+        this.stop();
     }
 
 
@@ -136,6 +143,7 @@ class StreamViewer extends React.Component<IProps, IState> {
                             <span>Stream ID: </span>
                             <input type='text' value={this.state.streamId} readOnly={true} size={23}/>
                         </div>
+                        <h2>{this.state.streamName}</h2>
                         <div className='StreamViewer-viewers_count_block'>
                             <img className='StreamViewer-viewers_icon' src={viewersIcon}/>
                             <span>{ this.state.streamViewersCount }</span>
