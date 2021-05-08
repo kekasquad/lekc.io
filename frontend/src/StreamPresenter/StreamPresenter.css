@@ -1,3 +1,5 @@
+@import '../variables.css';
+
 .StreamPresenter-window_container, .StreamPresenter-component, .StreamPresenter-control_buttons_group,
 .StreamPresenter-side_block, #StreamPresenter-screen_video, #StreamPresenter-webcam_video,
 .StreamPresenter-chat_block {
@@ -71,10 +73,26 @@
     justify-content: flex-start;
 }
 
-.StreamPresenter-share_icon {
-    width: 25px;
-    height: 25px;
-    margin: 0 0.5rem;
+.StreamPresenter-copy_link_button {
+    padding: 0.3rem;
+    width: fit-content;
+    height: fit-content;
+    box-sizing: border-box;
+    background-color: var(--light-light-grey);
+}
+
+.StreamPresenter-copy_link_button:hover {
+    border: none;
+    background-color: var(--light-grey);
+}
+
+.StreamPresenter-copy_link_button:active {
+    box-shadow: inset 0 0 1px 1px var(--common-grey);
+}
+
+.StreamPresenter-copy_link_button > img {
+    width: 20px;
+    height: 20px;
 }
 
 .StreamPresenter-viewers_icon {
