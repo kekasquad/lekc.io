@@ -4,6 +4,7 @@ import fs from 'fs';
 import https from 'https';
 import JWT, { VerifyErrors } from 'jsonwebtoken';
 import mongoose from 'mongoose';
+import multer from 'multer';
 import path from 'path';
 import passport from 'passport';
 import PassportJwt from 'passport-jwt';
@@ -13,7 +14,7 @@ import {
     viewers, streamRooms, stopStream, stopViewer, startPresenter,
     startViewer, onPresenterIceCandidate, onViewerIceCandidate, onChatMessage
 } from './ws-utils';
-import { User, UserModel } from './models/User';
+import { User, UserAvatar, UserModel } from './models/User';
 
 const options = {
     cert: fs.readFileSync(path.resolve(certDir, 'cert.pem')),
@@ -28,6 +29,7 @@ mongoose.connect(mongoUri, {
     useCreateIndex: true,
     authSource: 'admin'
 }).then(() => {
+    const upload = multer();
     const app: express.Express = express();
     const router = express.Router();
 
@@ -69,6 +71,7 @@ mongoose.connect(mongoUri, {
             });
             UserModel.register(user, req.body.password, (error: Error, user: any) => {
                 if (error) {
+                    console.log(error);
                     next(error);
                     return;
                 }
@@ -128,43 +131,78 @@ mongoose.connect(mongoUri, {
     );
 
     router.put(
-        '/user',
+        '/user/password',
         passport.authenticate('jwt', { session: false }),
         (req, res) => {
             if (req.user) {
                 const user = req.user as User;
-                let isError = false;
-                if (req.body.oldPassword && req.body.newPassword) {
-                    console.log('changing');
-                    user.changePassword(req.body.oldPassword, req.body.newPassword, (error: Error, updatedUser: any) => {
+                user.changePassword(req.body.oldPassword, req.body.newPassword, (error: Error, updatedUser: any) => {
+                    if (error) {
+                        return res.status(400).json({
+                            error: 'Couldn\'t change password'
+                        });
+                    } else {
+                        return res.status(200).json({
+                            user: updatedUser
+                        });
+                    }
+                });
+            } else {
+                return res.status(401).json({
+                    error: 'User is not authenticated'
+                });
+            }
+        }
+    )
+
+    router.get(
+        '/user/:login/avatar',
+        (req, res) => {
+            UserModel.findOne({ login: req.params.login })
+                .select('avatar')
+                .exec()
+                .then((userAvatar: any) => {
+                    console.log(userAvatar);
+                    if (userAvatar.avatar) {
+                        const avatar = userAvatar.avatar as UserAvatar;
+                        res.contentType(avatar.contentType);
+                        return res.status(200).set('Content-Type', ).send(avatar.data);
+                    } else {
+                        return res.redirect('https://static-cdn.jtvnw.net/jtv_user_pictures/fc144fea-e5b3-4ee6-bb38-60784be23877-profile_image-300x300.png');
+                    }
+                })
+                .catch((err: Error) => {
+                    console.log(err);   
+                    return res.status(400).json({error: 'No user'})
+                });
+        }
+    )
+
+    router.put(
+        '/user/avatar',
+        passport.authenticate('jwt', { session: false }),
+        upload.single("image"),
+        (req, res) => {
+            if (req.user) {
+                const user = req.user as User;
+                UserModel.updateOne(
+                    { login: user.login },
+                    { avatar: {
+                        data: req.file.buffer,
+                        contentType: req.file.mimetype
+                    } },
+                    { },
+                    (error: Error, docs: any) => {
                         if (error) {
-                            isError = true;
-                            console.log(error);
                             return res.status(400).json({
-                                error: 'Couldn\'t change password'
+                                error: 'Error changing avatar'
                             });
                         }
-                    });
-                }
-                if (req.body.avatar) {
-                    UserModel.updateOne({ login: user.login }, { avatar: req.body.avatar }).catch((error: Error) => {
-                        isError = true;
-                        return res.status(404).json({
-                            error: 'There is no such user'
-                        });
-                    });
-                }
-                if (isError) {
-                    UserModel.findOne({ login: user.login }).then((user) => {
                         return res.status(200).json({
                             user: user
                         });
-                    }).catch((error: Error) => {
-                        return res.status(404).json({
-                            error: 'There is no such user'
-                        });
-                    });
-                }
+                    }
+                );
             } else {
                 return res.status(401).json({
                     error: 'User is not authenticated'
@@ -194,7 +232,7 @@ mongoose.connect(mongoUri, {
                 });
             }
         }
-    )
+    );
 
     app.use('/', router);
 
@@ -207,11 +245,7 @@ mongoose.connect(mongoUri, {
     });
 
     wsServer.use((socket: Socket, next: (err?: any) => void) => {
-        if (
-            socket.handshake.query &&
-            socket.handshake.query.token &&
-            typeof socket.handshake.query.token === 'string'
-        ){
+        if (socket.handshake.query?.token && typeof socket.handshake.query.token === 'string'){
             JWT.verify(
                 socket.handshake.query.token,
                 jwtConfig.secret,
@@ -228,51 +262,65 @@ mongoose.connect(mongoUri, {
         }
     }).on('connection', async (socket: Socket) => {
         console.log(`Connection received with id: ${socket.id}`);
-
-        socket.on('disconnect', async (reason: string) => {
-            console.log(`Connection ${socket.id} disconnected with reason: ${reason}`);
-            if (viewers.has(socket.id)) {
-                await stopViewer(socket.id);
-            } else if (streamRooms.has(socket.id)) {
-                await stopStream(socket.id);
+        let userId: string = '';
+        if (socket.handshake.query?.token && typeof socket.handshake.query.token === 'string') {
+            const decoded = JWT.decode(socket.handshake.query.token);
+            userId = typeof decoded === 'string' ? JSON.parse(decoded).sub : decoded?.sub;
+            if (!userId) {
+                socket.disconnect();
+                return
             }
-        });
+        }
 
-        socket.on('presenter', async (type: 'screen' | 'webcam', sdpOffer: string) => {
-            console.log(`Connection ${socket.id} received presenter's SDP offer with type ${type}`);
-            try {
-                const sdpAnswer: string = await startPresenter(socket, type, sdpOffer);
-                socket.emit('sdpResponse', 'accepted', type, sdpAnswer);
-            } catch (error) {
-                console.log(`Presenter's SDP response error: ${error}`);
-                await stopStream(socket.id);
-                socket.emit('sdpResponse', 'rejected', type, error);
-            }
-        });
+        UserModel.findById(userId).exec().then(() => {
+            socket.on('disconnect', async (reason: string) => {
+                console.log(`Connection ${socket.id} disconnected with reason: ${reason}`);
+                if (viewers.has(socket.id)) {
+                    await stopViewer(socket.id);
+                } else if (streamRooms.has(socket.id)) {
+                    await stopStream(socket.id);
+                }
+            });
 
-        socket.on('viewer', async (streamId: string, type: 'screen' | 'webcam', sdpOffer: string) => {
-            console.log(`Connection ${socket.id} received viewer's SDP offer with type ${type}`);
-            try {
-                const sdpAnswer: string = await startViewer(streamId, socket, type, sdpOffer);
-                socket.emit('sdpResponse', 'accepted', type, sdpAnswer);
-            } catch (error) {
-                console.log(`Viewer's SDP response error: ${error}`);
-                await stopViewer(socket.id);
-                socket.emit('sdpResponse', 'rejected', type, error);
-            }
-        });
+            socket.on('presenter', async (type: 'screen' | 'webcam', sdpOffer: string) => {
+                console.log(`Connection ${socket.id} received presenter's SDP offer with type ${type}`);
+                try {
+                    const sdpAnswer: string = await startPresenter(socket, userId, type, sdpOffer);
+                    socket.emit('sdpResponse', 'accepted', type, sdpAnswer);
+                } catch (error) {
+                    console.log(`Presenter's SDP response error: ${error}`);
+                    await stopStream(socket.id);
+                    socket.emit('sdpResponse', 'rejected', type, error);
+                }
+            });
 
-        socket.on('presenterIceCandidate', async (streamId: string, type: 'screen' | 'webcam', candidate: RTCIceCandidate) => {
-            await onPresenterIceCandidate(streamId, socket.id, type, candidate);
-        });
+            socket.on('viewer', async (streamId: string, type: 'screen' | 'webcam', sdpOffer: string) => {
+                console.log(`Connection ${socket.id} received viewer's SDP offer with type ${type}`);
+                try {
+                    const sdpAnswer: string = await startViewer(streamId, socket, userId, type, sdpOffer);
+                    socket.emit('sdpResponse', 'accepted', type, sdpAnswer);
+                } catch (error) {
+                    console.log(`Viewer's SDP response error: ${error}`);
+                    await stopViewer(socket.id);
+                    socket.emit('sdpResponse', 'rejected', type, error);
+                }
+            });
 
-        socket.on('viewerIceCandidate', async (streamId: string, type: 'screen' | 'webcam', candidate: RTCIceCandidate) => {
-            await onViewerIceCandidate(streamId, socket.id, type, candidate);
-        });
+            socket.on('presenterIceCandidate', async (streamId: string, type: 'screen' | 'webcam', candidate: RTCIceCandidate) => {
+                await onPresenterIceCandidate(streamId, socket.id, type, candidate);
+            });
 
-        socket.on('sendChatMessage', (streamId: string, userName: string, message: string) => {
-            onChatMessage(socket, streamId, userName, message);
-        })
+            socket.on('viewerIceCandidate', async (streamId: string, type: 'screen' | 'webcam', candidate: RTCIceCandidate) => {
+                await onViewerIceCandidate(streamId, socket.id, type, candidate);
+            });
+
+            socket.on('sendChatMessage', (streamId: string, userName: string, message: string) => {
+                onChatMessage(socket, streamId, userName, message);
+            })
+        }).catch(() => {
+            console.log('User not found');
+            socket.disconnect();
+        });
     });
     server.listen(PORT, (): void => {
         console.log(`Server is listening on port ${PORT}`);

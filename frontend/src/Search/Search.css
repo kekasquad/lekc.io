@@ -48,12 +48,8 @@
 }
 
 .search_container input {
-    border: 0.5px solid var(--dark-blue);
-    border-radius: 2px;
-    height: 1.4rem;
     width: 80%;
     margin: 0.5rem auto;
-    padding: 2px 0 2px 0.5rem;
 }
 
 .search_btn {

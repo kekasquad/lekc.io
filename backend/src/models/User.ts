@@ -4,8 +4,17 @@ import passportLocalMongoose from 'passport-local-mongoose';
 export interface User extends PassportLocalDocument  {
     login: string;
     name: string;
-    avatar: string;
 }
+
+export interface UserAvatar {
+    data: Buffer, 
+    contentType: string
+}
+
+const avatarSchema = new Schema({
+    data: Buffer, 
+    contentType: String
+});
 
 const userSchema = new Schema({
     login: {
@@ -17,8 +26,8 @@ const userSchema = new Schema({
         type: String            
     },
     avatar: {
-        type: String,
-        default: 'https://static-cdn.jtvnw.net/jtv_user_pictures/fc144fea-e5b3-4ee6-bb38-60784be23877-profile_image-300x300.png'
+        type: avatarSchema,
+        select: false
     }
 }) as PassportLocalSchema;
 

@@ -23,7 +23,9 @@ interface Streamer {
     views?: number
 }
 
-interface IProps {}
+interface IProps {
+    showNotification: (type: 'info' | 'error' | 'success', text: string, notificationTimeout?: number) => void;
+}
 
 interface IState {
     searchQuery?: string;
@@ -35,7 +37,7 @@ interface IState {
 
 export default class Search extends React.Component<IProps, IState> {
 
-    constructor(props: any) {
+    constructor(props: IProps) {
         super(props);
         this.state = {
             searchQuery: '',
@@ -103,7 +105,7 @@ export default class Search extends React.Component<IProps, IState> {
     render(): JSX.Element {
         return (
             <div className="window">
-                <NavBar currentItem={0}/>
+                <NavBar currentTab={0} showNotification={this.props.showNotification}/>
                 <div className="search_container">
                     <span className="search_title">Search by author or name</span>
                     <div className="search_inputs">
@@ -114,9 +116,10 @@ export default class Search extends React.Component<IProps, IState> {
                     </div>
                 </div>
                 <div className="search_container_results">
-                    { this.state.isLoading === true ? this.loading() : 
-                        this.state.errorLoading !== undefined ? this.error() : 
-                        this.state.isInitial ? <div/> : this.streams() 
+                    { 
+                        this.state.isLoading === true ? this.loading() : 
+                            this.state.errorLoading !== undefined ? this.error() : 
+                            this.state.isInitial ? <div/> : this.streams() 
                     }
                 </div>
             </div>

@@ -5,9 +5,10 @@ import { History, Location } from 'history';
 import './StreamPresenter.css';
 import NavBar from '../NavBar/NavBar';
 import Stream from '../lib/stream';
-import webcamTurnButton from '../assets/webcam-turn-button.png';
-import screenTurnButton from '../assets/screen-turn-button.png';
-import microTurnButton from '../assets/micro-turn-button.png';
+import webcamTurnButtonIcon from '../assets/webcam-turn-button.png';
+import screenTurnButtonIcon from '../assets/screen-turn-button.png';
+import microTurnButtonIcon from '../assets/micro-turn-button.png';
+import copyLinkButtonIcon from '../assets/copy-link-button.png';
 import viewersIcon from '../assets/viewers-icon.png';
 import Chat from '../Chat/Chat';
 import { serverAddress } from '../constants';
@@ -16,6 +17,7 @@ interface IProps {
     history: History;
     location: Location;
     match: any;
+    showNotification: (type: 'info' | 'error' | 'success', text: string, notificationTimeout?: number) => void;
 }
 
 interface IState {
@@ -32,7 +34,7 @@ interface IState {
 
 class StreamPresenter extends React.Component<IProps, IState> {
 
-    constructor(props: any) {
+    constructor(props: IProps) {
         super(props);
 
         this.state = {
@@ -144,7 +146,7 @@ class StreamPresenter extends React.Component<IProps, IState> {
     render(): JSX.Element {
         return (
             <div className='StreamPresenter-window_container'>
-                <NavBar currentItem={1}/>
+                <NavBar currentTab={1} showNotification={this.props.showNotification}/>
                 <div className="StreamPresenter-component">
                     <div className='StreamPresenter-main_area'>
                         <video id='StreamPresenter-screen_video' autoPlay={true}></video>
@@ -171,28 +173,35 @@ class StreamPresenter extends React.Component<IProps, IState> {
                             this.state.stream ?
                                 <button className={ `round_button ${this.state.webcamEnabled ? 'green_button' : 'red_button'}` }
                                         onClick={ this.changeWebcamMode }>
-                                    <img src={webcamTurnButton} alt='Turn on/off webcam'/>
+                                    <img src={webcamTurnButtonIcon} alt='Turn on/off webcam'/>
                                 </button> : ''
                         }
                         {
                             this.state.stream ?
                                 <button className={ `round_button ${this.state.screenEnabled ? 'green_button' : 'red_button'}` }
                                         onClick={ this.changeScreenMode }>
-                                    <img src={screenTurnButton} alt='Turn on/off screen sharing'/>
+                                    <img src={screenTurnButtonIcon} alt='Turn on/off screen sharing'/>
                                 </button> : ''
                         }
                         {
                             this.state.stream ?
                                 <button className={ `round_button ${this.state.audioEnabled ? 'green_button' : 'red_button'}` }
                                         onClick={ this.changeAudioMode }>
-                                    <img src={microTurnButton} alt='Turn on/off micro'/>
+                                    <img src={microTurnButtonIcon} alt='Turn on/off micro'/>
                                 </button> : ''
                         }
                         {
                             this.state.stream ?
                                 <div className='StreamPresenter-stream_id_block'>
                                     <span>Stream ID: </span>
-                                    <input type='text' value={this.state.streamId} readOnly={true} />
+                                    <input type='text' value={this.state.streamId} readOnly={true} size={23}/>
+                                    <button className='common_button small_button StreamPresenter-copy_link_button'
+                                            onClick={
+                                                () => navigator.clipboard.writeText(`${window.location.origin}/stream/${this.state.streamId}`)
+                                            }
+                                            title='Copy link'>
+                                        <img src={copyLinkButtonIcon}/>
+                                    </button>
                                 </div> : ''
                         }
                         {

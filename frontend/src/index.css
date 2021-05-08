@@ -14,13 +14,16 @@ code {
     monospace;
 }
 
+button:hover {
+  cursor: pointer;
+}
+
 .common_button {
   width: var(--common-button-width);
   height: var(--common-button-height);
   border: none;
   background-color: var(--common-light-blue);
   border-radius: 3px;
-  cursor: pointer;
 }
 
 .common_button:hover {
@@ -29,6 +32,11 @@ code {
 
 .common_button:focus {
   outline: none;
+}
+
+.small_button {
+  width: var(--small-button-width);
+  height: var(--small-button-height);
 }
 
 .red_button {
@@ -63,4 +71,15 @@ code {
   color: var(--light-red);
   font-size: 0.7em;
   margin-left: 1rem;
+}
+
+input {
+  border: 0.5px solid var(--dark-blue);
+  border-radius: 2px;
+  height: 1.4rem;
+  padding: 2px 0 2px 0.5rem;
+}
+
+input:focus {
+  outline: none;
 }
