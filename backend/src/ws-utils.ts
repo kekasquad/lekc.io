@@ -22,7 +22,7 @@ interface Viewer {
 	webcamWebRtcEndpoint: WebRtcEndpoint | null;
 }
 
-interface Stream {
+export interface Stream {
 	id: string;
 	name: string;
 	presenter: Presenter;

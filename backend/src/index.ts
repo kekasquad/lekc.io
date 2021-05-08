@@ -12,7 +12,8 @@ import { Server, Socket } from 'socket.io';
 import { certDir, PORT, mongoUri, jwtConfig } from './config/constants';
 import {
     viewers, streamRooms, stopStream, stopViewer, startPresenter, changeStreamName,
-    startViewer, onPresenterIceCandidate, onViewerIceCandidate, onChatMessage
+    startViewer, onPresenterIceCandidate, onViewerIceCandidate, onChatMessage,
+    Stream
 } from './ws-utils';
 import { User, UserAvatar, UserModel } from './models/User';
 
@@ -153,7 +154,32 @@ mongoose.connect(mongoUri, {
                 });
             }
         }
-    )
+    );
+
+    router.get(
+        '/user/:id',
+        passport.authenticate('jwt', { session: false }),
+        (req, res) => {
+            if (req.user) {
+                UserModel.findById(req.params.id).exec()
+                    .then((user: User | null) => {
+                        if (!user) {
+                            return res.status(404).json({
+                                error: 'User not found'
+                            });
+                        }
+                        return res.status(200).json({ user });
+                    })
+                    .catch(() => res.status(404).json({
+                        error: 'User not found'
+                    }));
+            } else {
+                return res.status(401).json({
+                    error: 'User is not authenticated'
+                });
+            }
+        }
+    );
 
     router.get(
         '/user/:login/avatar',
@@ -173,10 +199,10 @@ mongoose.connect(mongoUri, {
                 })
                 .catch((err: Error) => {
                     console.log(err);   
-                    return res.status(400).json({error: 'No user'})
+                    return res.status(404).json({error: 'User not found'})
                 });
         }
-    )
+    );
 
     router.put(
         '/user/avatar',
@@ -209,7 +235,7 @@ mongoose.connect(mongoUri, {
                 });
             }
         }
-    )
+    );
 
     router.delete(
         '/user',
@@ -226,6 +252,29 @@ mongoose.connect(mongoUri, {
                         error: 'There is no such user'
                     });
                 });
+            } else {
+                return res.status(401).json({
+                    error: 'User is not authenticated'
+                });
+            }
+        }
+    );
+
+    router.get(
+        '/streams',
+        passport.authenticate('jwt', { session: false }),
+        (req, res) => {
+            if (req.user) {
+                return res.status(200).json(
+                    Array.from(streamRooms.values()).map((stream: Stream) => {
+                        return {
+                            id: stream.id,
+                            name: stream.name,
+                            presenterId: stream.presenter.userId,
+                            viewersCount: stream.viewers.size
+                        }
+                    })
+                );
             } else {
                 return res.status(401).json({
                     error: 'User is not authenticated'
