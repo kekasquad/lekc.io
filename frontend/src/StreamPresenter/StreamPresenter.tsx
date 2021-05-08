@@ -24,6 +24,7 @@ interface IState {
     streamId: string;
     stream: Stream | null;
     streamName: string;
+    streamNameIsSet: boolean;
     streamViewersCount: number;
     socket: Socket | null;
     screenVideo: HTMLVideoElement | null;
@@ -42,6 +43,7 @@ class StreamPresenter extends React.Component<IProps, IState> {
             streamId: '',
             stream: null,
             streamName: '',
+            streamNameIsSet: false,
             streamViewersCount: 0,
             socket: null,
             screenVideo: null,
@@ -113,9 +115,13 @@ class StreamPresenter extends React.Component<IProps, IState> {
             socket.on('streamName', (streamId: string, streamName: string) => {
                 if (this.state.streamId == streamId) {
                     this.setState({ streamName });
-                    this.props.showNotification(
-                        'success', `Stream name changed to ${streamName}`, 1200
-                    );
+                    if (this.state.streamNameIsSet) {
+                        this.props.showNotification(
+                            'success', `Stream name changed to ${streamName}`, 1200
+                        );
+                    } else {
+                        this.setState({ streamNameIsSet: true });
+                    }
                 }
             });
         }
