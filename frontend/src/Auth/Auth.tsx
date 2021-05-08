@@ -62,7 +62,7 @@ export default class Auth extends React.Component<IProps, IState> {
             this.setState({ redirectToReferrer: true });
             this.props.showNotification('success', 'Successfully logged in', 1300);
         } catch (err) {
-            this.props.showNotification('error', 'Error logging in with provided credentials');
+            this.props.showNotification('error', 'Error logging in');
             console.log('Error logging in', err);
         }
     }
@@ -81,7 +81,7 @@ export default class Auth extends React.Component<IProps, IState> {
             this.props.showNotification('success', 'Successfully registered', 1300);
         } catch (err) {
             this.props.showNotification(
-                'error', 'Error signing up with provided credentials: User already exists'
+                'error', 'Error signing up'
             );
             console.log('Error signing up', err);
         }
