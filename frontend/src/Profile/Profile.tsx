@@ -23,7 +23,8 @@ interface IState {
 }
 
 interface IProps {
-    token?: string;
+    token: string;
+    login: string;
     showNotification: (type: 'info' | 'error' | 'success', text: string, notificationTimeout?: number) => void;
 }
 
@@ -190,55 +191,55 @@ export default class Profile extends React.Component<IProps, IState> {
         const view = (
             <div className="profile_content">
                 <div className="profile_content_information">
-                        <img src={this.state.profile?.avatar} 
-                            className="profile_content_information_avatar"/>
-                        <div className="profile_content_information_names">
-                            <h1> { this.state.profile?.fullName } </h1>
-                            <h2> { "@" + this.state.profile?.nickname } </h2>
-                        </div>
+                    <img src={this.state.profile?.avatar} 
+                        className="profile_content_information_avatar"/>
+                    <div className="profile_content_information_names">
+                        <h1> { this.state.profile?.fullName } </h1>
+                        <h2> { "@" + this.state.profile?.nickname } </h2>
                     </div>
-                    <div className="profile_content_change">
-                        <div className="profile_content_change_password">
-                            <h3>Change password</h3>
-                            <form className="profile_content_change_password_form">
-                                <div className="form_change_field">
-                                    <label>Old password<span className="form_error">{this.state.fieldsError?.oldPasswordError}</span></label>
-                                    <input
-                                        type='password' name='oldPassword'
-                                        value={this.state.oldPassword}
-                                        onChange={this.handleInputChange}/>
-                                </div>
-                                <div className="form_change_field">
-                                    <label>New password</label>
-                                    <input
-                                        type='password' name='newPassword'
-                                        value={this.state.newPassword}
-                                        onChange={this.handleInputChange}/>
-                                </div>
-                                <div className="form_change_field">
-                                    <label>Repeat new password<span className="form_error">{this.state.fieldsError?.passwordMissmatchError}</span></label>
-                                    <input
-                                        type='password' name='newPasswordRepeat'
-                                        value={this.state.newPasswordRepeat}
-                                        onChange={this.handleInputChange}/>
-                                </div>
-                                <button className='form_change_submit_btn btn_text' onClick={this.submitForm}>Save</button>
-                            </form>
-                        </div>
-                        <form className="profile_content_change_image" encType="multipart/form-data">
-                            <h3>Change profile image</h3>
-                            <DragAndDrop handleFileDrop={this.handleFileDrop}>
-                                Add new profile image
-                                <label htmlFor="file-input" className='profile_content_upload_image_btn btn_icon'>
-                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-                                        <path d="M0 0h24v24H0z" fill="none"/>
-                                        <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
-                                    </svg>
-                                </label>
-                                <input id="file-input" accept="image/*" type='file' onChange={ this.handleFileChoose }/>
-                            </DragAndDrop>
+                </div>
+                <div className="profile_content_change">
+                    <div className="profile_content_change_password">
+                        <h3>Change password</h3>
+                        <form className="profile_content_change_password_form">
+                            <div className="form_change_field">
+                                <label>Old password<span className="form_error">{this.state.fieldsError?.oldPasswordError}</span></label>
+                                <input
+                                    type='password' name='oldPassword'
+                                    value={this.state.oldPassword}
+                                    onChange={this.handleInputChange}/>
+                            </div>
+                            <div className="form_change_field">
+                                <label>New password</label>
+                                <input
+                                    type='password' name='newPassword'
+                                    value={this.state.newPassword}
+                                    onChange={this.handleInputChange}/>
+                            </div>
+                            <div className="form_change_field">
+                                <label>Repeat new password<span className="form_error">{this.state.fieldsError?.passwordMissmatchError}</span></label>
+                                <input
+                                    type='password' name='newPasswordRepeat'
+                                    value={this.state.newPasswordRepeat}
+                                    onChange={this.handleInputChange}/>
+                            </div>
+                            <button className='form_change_submit_btn btn_text' onClick={this.submitForm}>Save</button>
                         </form>
                     </div>
+                    <form className="profile_content_change_image" encType="multipart/form-data">
+                        <h3>Change profile image</h3>
+                        <DragAndDrop handleFileDrop={this.handleFileDrop}>
+                            Add new profile image
+                            <label htmlFor="file-input" className='profile_content_upload_image_btn btn_icon'>
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                                    <path d="M0 0h24v24H0z" fill="none"/>
+                                    <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
+                                </svg>
+                            </label>
+                            <input id="file-input" accept="image/*" type='file' onChange={ this.handleFileChoose }/>
+                        </DragAndDrop>
+                    </form>
+                </div>
             </div>
         );
         return view;
@@ -247,7 +248,7 @@ export default class Profile extends React.Component<IProps, IState> {
     render(): JSX.Element {
         return (
             <div className="window">
-                <NavBar currentTab={2} showNotification={this.props.showNotification}/>
+                <NavBar showNotification={this.props.showNotification} login={this.props.login}/>
                 { 
                     this.state.isLoading ? this.loading() :
                         this.state.loadingError !== undefined ? this.error() :

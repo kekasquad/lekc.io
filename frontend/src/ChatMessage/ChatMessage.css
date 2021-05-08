@@ -25,6 +25,10 @@
     margin: 0.5rem 0 0 0.5rem;
     border: 1px solid var(--dark-blue);
     border-radius: 50%;
+    background-image: url('../assets/default_profile.png');
+    background-repeat: no-repeat;
+    background-size: contain;
+    background-position: center;
     grid-column-start: start;
     grid-column-end: line2;
     grid-row-start: start;
