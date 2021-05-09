@@ -18,7 +18,7 @@ interface IState {
 }
 
 function App() {
-    const {token, setToken} = useToken();
+    const {token, setToken, getToken} = useToken();
     const [login, setLogin] = useState('');
     const [notification, setNotification] = useState<IState>({
         type: 'info',
@@ -28,6 +28,7 @@ function App() {
     });
 
     useEffect(() => {
+        setToken(getToken());
         fetch(`https://${serverAddress}/user`, {
           "method": "GET",
           "headers": {

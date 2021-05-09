@@ -7,7 +7,6 @@ import Stream from '../lib/stream';
 import viewersIcon from '../assets/viewers-icon.png';
 import backButtonIcon from '../assets/back-button.png';
 import Chat from '../Chat/Chat';
-import NavBar from '../NavBar/NavBar';
 import { serverAddress } from '../constants';
 
 interface IUrlParams {
@@ -126,7 +125,6 @@ class StreamViewer extends React.Component<IProps, IState> {
     render(): JSX.Element {
         return (
             <div className="StreamViewer-component">
-                <NavBar showNotification={this.props.showNotification} login={this.props.login}/>
                 <div className='StreamViewer-main_area'>
                     <button className='StreamViewer-back_button round_button' onClick={this.back}>
                         <img src={backButtonIcon} alt='Back' title='Back'/>
