@@ -2,17 +2,16 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { withRouter } from 'react-router';
 import { History, Location } from 'history';
+import { serverAddress } from '../constants';
 import './NavBar.css';
 
 import createStreamButtonIcon from '../assets/create-stream-button.png';
 import logoutButtonIcon from '../assets/logout-button.png';
 import searchStreamButtonIcon from '../assets/search-stream-button.png';
-import userProfileButtonIcon from '../assets/user-profile-button.png';
 
 enum SelectedTab {
     FIND,
-    STREAM_PRESENTER,
-    PROFILE
+    STREAM_PRESENTER
 }
 
 interface IProps {
@@ -21,6 +20,7 @@ interface IProps {
     location: Location;
     match: any;
     showNotification: (type: 'info' | 'error' | 'success', text: string, notificationTimeout?: number) => void;
+    login: string;
 }
 
 interface IState {
@@ -82,13 +82,14 @@ class NavBar extends React.Component<IProps, IState> {
                                 <img src={createStreamButtonIcon} alt='Create stream'/>
                             </button>
                         </Link>
-                        <Link to='/profile'>
-                            <button className={ 'Navbar-tab Navbar-btn_icon' +
-                                    (this.state.currentTab == SelectedTab.PROFILE ? ' Navbar-tab_active' : '') }
-                                    onClick={ () => this.changeTab(SelectedTab.PROFILE) } title='User profile'>
-                                <img src={userProfileButtonIcon} alt='User profile'/>
-                            </button>
-                        </Link>
+                        <input className='Navbar-join_input'
+                                type='text'
+                                placeholder='Enter stream ID'
+                                value={this.state.streamId}
+                                onChange={this.handleStreamIdChange}/>
+                        <button className='Navbar-btn_join common_button green_button small_button'
+                                onClick={this.joinStream}
+                                disabled={!this.state.streamId}>Join by ID</button>
                     </div>
                 </div>
                 <div className='Navbar-right_section'>
@@ -97,14 +98,10 @@ class NavBar extends React.Component<IProps, IState> {
                             <img src={logoutButtonIcon} alt='Log out'/>
                         </button>
                     </Link>
-                    <button className='Navbar-btn_join common_button green_button small_button'
-                            onClick={this.joinStream}
-                            disabled={!this.state.streamId}>Join by ID</button>
-                    <input className='Navbar-join_input'
-                           type='text'
-                           placeholder='Enter stream ID'
-                           value={this.state.streamId}
-                           onChange={this.handleStreamIdChange}/>
+                    <Link to='/profile' className='Navbar-profile_block'>
+                        <h3>{this.props.login}</h3>
+                        <img src={`https://${serverAddress}/user/${this.props.login}/avatar`} className='Navbar-profile_icon' alt='User profile'/>
+                    </Link>
                 </div>
             </nav>
         );

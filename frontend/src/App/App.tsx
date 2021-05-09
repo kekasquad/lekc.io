@@ -18,7 +18,8 @@ interface IState {
 }
 
 function App() {
-    const {token, setToken} = useToken();
+    const {token, setToken, getToken} = useToken();
+    const [login, setLogin] = useState('');
     const [notification, setNotification] = useState<IState>({
         type: 'info',
         text: '',
@@ -27,19 +28,24 @@ function App() {
     });
 
     useEffect(() => {
+        setToken(getToken());
         fetch(`https://${serverAddress}/user`, {
           "method": "GET",
           "headers": {
             'Content-Type': 'application/json',
             "Authorization": `Bearer ${token}`
           }
-        }).then(response => {
-          if (response.status !== 200) {
+        }).then(response => response.json())
+          .then(user => {
+              if (user) {
+                setLogin(user.user.login);
+              } else {
+                setToken('');
+              }
+          })
+          .catch(err => {
             setToken('');
-          }
-        }).catch(err => {
-    
-        });
+          });
       });
 
     const showNotification = (
@@ -72,28 +78,26 @@ function App() {
                 <Route path='/login'>
                     <Auth setToken={setToken} showNotification={showNotification}/>
                 </Route>
-                <PrivateRoute path='/search' component={Search}
+                <PrivateRoute path='/search' component={Search} token={token} login={login}
                               isAuthenticated={!!token} showNotification={showNotification}/>
-                <PrivateRoute path='/presenter' component={StreamPresenter}
+                <PrivateRoute path='/presenter' component={StreamPresenter} token={token} login={login}
                               isAuthenticated={!!token} showNotification={showNotification}/>
-                <PrivateRoute path='/stream/:id' component={StreamViewer}
+                <PrivateRoute path='/stream/:id' component={StreamViewer} token={token} login={login}
                               isAuthenticated={!!token} showNotification={showNotification}/>
-                <PrivateRoute path='/profile'
-                              isAuthenticated={!!token} showNotification={showNotification}>
-                    <Profile token={token} showNotification={showNotification}/>                  
-                </PrivateRoute>
+                <PrivateRoute path='/profile' component={Profile} token={token} login={login}
+                              isAuthenticated={!!token} showNotification={showNotification}/>       
                 <Redirect from='/' to='/search'/>
             </Switch>
         </div>
     );
 }
 
-const PrivateRoute = ({component, isAuthenticated, showNotification, ...rest}: any) => {
+const PrivateRoute = ({component, isAuthenticated, showNotification, token, login, ...rest}: any) => {
     const routeComponent = (props: any) => {
         const from = '?from=' + props.location.pathname;
         return (
             isAuthenticated
-                ? React.createElement(component, {...props, showNotification})
+                ? React.createElement(component, {...props, showNotification, token, login})
                 : <Redirect to={{
                     pathname: '/login',
                     search: from
