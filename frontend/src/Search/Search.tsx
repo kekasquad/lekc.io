@@ -20,6 +20,8 @@ interface IProps {
     location: Location;
     match: any;
     showNotification: (type: 'info' | 'error' | 'success', text: string, notificationTimeout?: number) => void;
+    token: string;
+    login: string;
 }
 
 interface IState {
@@ -138,7 +140,7 @@ class Search extends React.Component<IProps, IState> {
     render(): JSX.Element {
         return (
             <div className='Search-component'>
-                <NavBar currentTab={0} showNotification={this.props.showNotification}/>
+                <NavBar currentTab={0} showNotification={this.props.showNotification} login={this.props.login}/>
                 <div className='Search-search_container'>
                     <h2>Search by author or name</h2>
                     <div className='Search-search_input_block'>

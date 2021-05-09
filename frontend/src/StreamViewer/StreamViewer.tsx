@@ -18,6 +18,8 @@ interface IProps {
     location: Location;
     match: match<IUrlParams>;
     showNotification: (type: 'info' | 'error' | 'success', text: string, notificationTimeout?: number) => void;
+    login: string;
+    token: string;
 }
 
 interface IState {

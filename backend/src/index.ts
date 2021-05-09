@@ -188,13 +188,12 @@ mongoose.connect(mongoUri, {
                 .select('avatar')
                 .exec()
                 .then((userAvatar: any) => {
-                    console.log(userAvatar);
                     if (userAvatar.avatar) {
                         const avatar = userAvatar.avatar as UserAvatar;
                         res.contentType(avatar.contentType);
                         return res.status(200).set('Content-Type', ).send(avatar.data);
                     } else {
-                        return res.redirect('https://static-cdn.jtvnw.net/jtv_user_pictures/fc144fea-e5b3-4ee6-bb38-60784be23877-profile_image-300x300.png');
+                        return res.status(204);
                     }
                 })
                 .catch((err: Error) => {
