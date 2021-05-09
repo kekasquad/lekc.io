@@ -11,7 +11,8 @@ import searchStreamButtonIcon from '../assets/search-stream-button.png';
 
 enum SelectedTab {
     FIND,
-    STREAM_PRESENTER
+    STREAM_PRESENTER,
+    PROFILE
 }
 
 interface IProps {
@@ -98,9 +99,14 @@ class NavBar extends React.Component<IProps, IState> {
                             <img src={logoutButtonIcon} alt='Log out'/>
                         </button>
                     </Link>
-                    <Link to='/profile' className='Navbar-profile_block'>
-                        <h3>{this.props.login}</h3>
-                        <img src={`https://${serverAddress}/user/${this.props.login}/avatar`} className='Navbar-profile_icon' alt='User profile'/>
+                    <Link to='/profile'>
+                        <div className={'Navbar-tab Navbar-profile_block' +
+                            (this.state.currentTab == SelectedTab.PROFILE ? ' Navbar-tab_active' : '') }>
+                            <h3 title={`${this.props.login}'s profile`}>{this.props.login}</h3>
+                            <div className='Navbar-profile_icon'>
+                                <img src={`https://${serverAddress}/user/${this.props.login}/avatar`} alt='User profile'/>
+                            </div>
+                        </div>
                     </Link>
                 </div>
             </nav>

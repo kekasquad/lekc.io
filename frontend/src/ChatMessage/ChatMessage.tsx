@@ -18,7 +18,9 @@ export default class ChatMessage extends React.Component<IProps, IState> {
         const date: Date = new Date(this.props.date);
         return (
             <div className='ChatMessage-component'>
-                <img className='ChatMessage-component_krujochek' src={this.props.avatar}/>
+                <div className='ChatMessage-component_krujochek'>
+                    <img src={this.props.avatar}/>
+                </div>
                 <div className={'ChatMessage-component_message' + (this.props.isPresenterMessage ? ' presenter_message' : '')}>
                     <div className='ChatMessage-username_block'>
                         <h5>{(this.props.isPresenterMessage ? '👑 ' : '') + this.props.userName}</h5>

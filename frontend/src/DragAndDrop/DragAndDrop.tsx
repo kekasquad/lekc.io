@@ -65,7 +65,7 @@ export default class DragAndDrop extends React.Component<IProps, IState> {
 
     render(): JSX.Element {
         return (
-            <div className="profile_content_change_image_drop" ref={this.dropRef}>
+            <div className='profile_content_change_image_drop' ref={this.dropRef}>
                 {this.props.children}
             </div>
         );
