@@ -29,6 +29,8 @@ interface IState {
 }
 
 class Search extends React.Component<IProps, IState> {
+    readonly TOP_STREAMS_COUNT = 6;
+
     constructor(props: IProps) {
         super(props);
         this.state = {
@@ -45,14 +47,14 @@ class Search extends React.Component<IProps, IState> {
 
     componentDidMount() {
         this.setState({ isLoading: true });
-        this.loadStreams(true).then(() => {});
+        this.loadStreams(this.TOP_STREAMS_COUNT).then(() => {});
     }
 
     handleQueryInputChange(event: React.ChangeEvent<HTMLInputElement>): void {
         this.setState({ searchQuery: event.target.value });
     }
 
-    async loadStreams(showOnlyTopByViewers:boolean = false) {
+    async loadStreams(limit?: number) {
         const headers: any = {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -61,7 +63,10 @@ class Search extends React.Component<IProps, IState> {
         this.setState({ isLoading: true });
 
         try {
-            let streams: any[] = await (await fetch(`https://${serverAddress}/streams`, { headers })).json();
+            let streams: any[] = await (
+                await fetch(`https://${serverAddress}/streams${limit ? `?limit=${limit}` : ''}`, { headers })
+            ).json();
+
             streams = await Promise.all(streams.map(async stream => {
                 const user = await (
                     await fetch(`https://${serverAddress}/user/${stream.presenterId}`, { headers })

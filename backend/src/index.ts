@@ -265,15 +265,16 @@ mongoose.connect(mongoUri, {
         passport.authenticate('jwt', { session: false }),
         (req, res) => {
             if (req.user) {
+                const response = Array.from(streamRooms.values()).map((stream: Stream) => {
+                    return {
+                        id: stream.id,
+                        name: stream.name,
+                        presenterId: stream.presenter.userId,
+                        viewersCount: stream.viewers.size
+                    }
+                }).sort((el1, el2) => el2.viewersCount - el1.viewersCount);
                 return res.status(200).json(
-                    Array.from(streamRooms.values()).map((stream: Stream) => {
-                        return {
-                            id: stream.id,
-                            name: stream.name,
-                            presenterId: stream.presenter.userId,
-                            viewersCount: stream.viewers.size
-                        }
-                    })
+                    (req.query.limit && !isNaN(+req.query.limit)) ? response.slice(0, +req.query.limit) : response
                 );
             } else {
                 return res.status(401).json({

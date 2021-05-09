@@ -11,7 +11,7 @@
     grid-template-rows: 50px auto 1fr;
 }
 
-h2 {
+.Search-component h2 {
     margin: 1rem;
 }
 
@@ -24,7 +24,7 @@ h2 {
     margin: 0 auto;
 }
 
-h4 {
+.Search-component h4 {
     margin: 1.5rem 0 0.5rem 0;
     align-self: flex-start;
 }
@@ -34,8 +34,6 @@ h4 {
     display: flex;
     align-items: center;
     justify-content: center;
-    /*display: grid;*/
-    /*grid-template-columns: 1fr auto;*/
 }
 
 .Search-search_input_block > input {
