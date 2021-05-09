@@ -57,8 +57,24 @@ class NavBar extends React.Component<IProps, IState> {
         localStorage.removeItem('token');
     }
 
-    joinStream(): void {
-        this.props.history.push(`/stream/${this.state.streamId}`);
+    async joinStream(): Promise<void> {
+        try {
+            const response = await fetch(`https://${serverAddress}/stream/${this.state.streamId}`, {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                }
+            });
+            if (response.status == 200) {
+                this.props.history.push(`/stream/${this.state.streamId}`);
+            } else if (response.status === 404) {
+                this.props.showNotification('error', 'Stream not found');
+            } else {
+                throw 'Unable to join stream';
+            }
+        } catch {
+            this.props.showNotification('error', 'Unable to join stream');
+        }
     }
 
     render(): JSX.Element {
