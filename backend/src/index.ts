@@ -265,17 +265,33 @@ mongoose.connect(mongoUri, {
         passport.authenticate('jwt', { session: false }),
         (req, res) => {
             if (req.user) {
-                const response = Array.from(streamRooms.values()).map((stream: Stream) => {
+                Promise.all(Array.from(streamRooms.values()).map(async (stream: Stream) => {
                     return {
                         id: stream.id,
                         name: stream.name,
-                        presenterId: stream.presenter.userId,
+                        presenter: await UserModel.findById(stream.presenter.userId),
                         viewersCount: stream.viewers.size
                     }
-                }).sort((el1, el2) => el2.viewersCount - el1.viewersCount);
-                return res.status(200).json(
-                    (req.query.limit && !isNaN(+req.query.limit)) ? response.slice(0, +req.query.limit) : response
-                );
+                })).then(response => {
+                    if (req.query.search) {
+                        const regex = new RegExp(`.*${req.query.search}.*`, 'gi');
+                        response = response.filter(stream =>
+                            regex.test(stream.name) ||
+                            (stream.presenter ?
+                                regex.test(stream.presenter?.login) ||
+                                regex.test(stream.presenter.name) : false)
+                        );
+                    }
+                    response.sort((el1, el2) => el2.viewersCount - el1.viewersCount);
+                    return res.status(200).json(
+                        (req.query.limit && !isNaN(+req.query.limit)) ? response.slice(0, +req.query.limit) : response
+                    );
+                }).catch(() => {
+                    return res.status(400).json({
+                        error: 'Failed to fetch search results'
+                    });
+                });
+
             } else {
                 return res.status(401).json({
                     error: 'User is not authenticated'

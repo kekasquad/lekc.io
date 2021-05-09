@@ -10,6 +10,7 @@ interface StreamItem {
     id: string;
     avatar: string;
     presenterName: string;
+    presenterLogin: string;
     streamName: string;
     viewersCount: number;
 }
@@ -63,22 +64,23 @@ class Search extends React.Component<IProps, IState> {
         this.setState({ isLoading: true });
 
         try {
-            let streams: any[] = await (
-                await fetch(`https://${serverAddress}/streams${limit ? `?limit=${limit}` : ''}`, { headers })
-            ).json();
+            let streams: any[] = await (await fetch(
+                `https://${serverAddress}/streams` +
+                `${limit ? `?limit=${limit}` : ''}` +
+                `${this.state.searchQuery ? `?search=${this.state.searchQuery}` : ''}`,
+                { headers }
+            )).json();
 
-            streams = await Promise.all(streams.map(async stream => {
-                const user = await (
-                    await fetch(`https://${serverAddress}/user/${stream.presenterId}`, { headers })
-                ).json();
+            streams = streams.map(stream => {
                 return {
                     id: stream.id,
-                    avatar: `https://${serverAddress}/user/${user.user.login}/avatar`,
-                    presenterName: user.user.name,
+                    avatar: `https://${serverAddress}/user/${stream.presenter.login}/avatar`,
+                    presenterName: stream.presenter.name,
+                    presenterLogin: stream.presenter.login,
                     streamName: stream.name,
                     viewersCount: stream.viewersCount
-                }
-            }));
+                };
+            });
             this.setState({
                 isLoading: false,
                 searchResults: streams
@@ -118,7 +120,7 @@ class Search extends React.Component<IProps, IState> {
                 <img src={item.avatar} className='Search-stream_item-avatar'/>
                 <div className='Search-stream_item-stream_info_block'>
                     <div className='Search-stream_item-stream_name_block'>
-                        <span title={item.presenterName}>{item.presenterName}</span>
+                        <span title={item.presenterName}>{item.presenterName} @{item.presenterLogin}</span>
                         <h3 title={item.streamName}>{item.streamName}</h3>
                     </div>
                     <div className='Search-stream_item-viewers_count_block'>
