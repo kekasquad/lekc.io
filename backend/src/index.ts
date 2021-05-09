@@ -247,7 +247,7 @@ mongoose.connect(mongoUri, {
                     return res.status(200).json({
                         status: "OK"
                     });
-                }).catch((error: Error) => {
+                }).catch(() => {
                     return res.status(404).json({
                         error: 'There is no such user'
                     });
@@ -269,7 +269,7 @@ mongoose.connect(mongoUri, {
                     return {
                         id: stream.id,
                         name: stream.name,
-                        presenter: await UserModel.findById(stream.presenter.userId),
+                        presenter: await UserModel.findById(stream.presenter.userId).exec(),
                         viewersCount: stream.viewers.size
                     }
                 })).then(response => {
@@ -292,6 +292,33 @@ mongoose.connect(mongoUri, {
                     });
                 });
 
+            } else {
+                return res.status(401).json({
+                    error: 'User is not authenticated'
+                });
+            }
+        }
+    );
+
+    router.get(
+        '/stream/:id',
+        passport.authenticate('jwt', { session: false }),
+        (req, res) => {
+            if (req.user) {
+                const stream: Stream | undefined = streamRooms.get(req.params.id);
+                if (!stream) {
+                    return res.status(404).json({
+                        error: 'Stream not found'
+                    });
+                }
+                UserModel.findById(stream.presenter.userId).exec((presenter: User | null) => {
+                    return res.status(200).json({
+                        id: stream.id,
+                        name: stream.name,
+                        presenter,
+                        viewersCount: stream.viewers.size
+                    });
+                });
             } else {
                 return res.status(401).json({
                     error: 'User is not authenticated'
