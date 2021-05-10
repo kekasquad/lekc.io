@@ -193,12 +193,12 @@ mongoose.connect(mongoUri, {
                         res.contentType(avatar.contentType);
                         return res.status(200).set('Content-Type', ).send(avatar.data);
                     } else {
-                        return res.status(204);
+                        return res.status(204).send();
                     }
                 })
                 .catch((err: Error) => {
                     console.log(err);   
-                    return res.status(404).json({error: 'User not found'})
+                    return res.status(404).json({error: 'User not found'});
                 });
         }
     );

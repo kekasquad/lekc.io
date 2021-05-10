@@ -115,15 +115,17 @@ class NavBar extends React.Component<IProps, IState> {
                             <img src={logoutButtonIcon} alt='Log out'/>
                         </button>
                     </Link>
+                    {this.props.login ?
                     <Link to='/profile'>
                         <div className={'Navbar-tab Navbar-profile_block' +
                             (this.state.currentTab == SelectedTab.PROFILE ? ' Navbar-tab_active' : '') }>
                             <h3 title={`${this.props.login}'s profile`}>{this.props.login}</h3>
                             <div className='Navbar-profile_icon'>
-                                <img src={`https://${serverAddress}/user/${this.props.login}/avatar`} alt='User profile'/>
+                                <img src={`https://${serverAddress}/user/${this.props.login}/avatar`}
+                                     onError={event => {event.currentTarget.style.display = 'none'}}/>
                             </div>
                         </div>
-                    </Link>
+                    </Link> : '' }
                 </div>
             </nav>
         );

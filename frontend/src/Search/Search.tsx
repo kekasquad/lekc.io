@@ -120,7 +120,7 @@ class Search extends React.Component<IProps, IState> {
             <div key={index} className='Search-stream_item'
                  onClick={() => this.props.history.push(`/stream/${item.id}`)}>
                 <div className='Search-stream_item-avatar'>
-                    <img src={item.avatar}/>
+                    <img src={item.avatar} onError={event => {event.currentTarget.style.display = 'none'}}/>
                 </div>
                 <div className='Search-stream_item-stream_info_block'>
                     <div className='Search-stream_item-stream_name_block'>

@@ -193,7 +193,8 @@ export default class Profile extends React.Component<IProps, IState> {
             <div className='Profile-content_block'>
                 <div className='Profile-content_information_block'>
                     <div className='Profile-content_information_block-avatar'>
-                        <img src={this.state.profile?.avatar}/>
+                        <img src={this.state.profile?.avatar}
+                             onError={event => {event.currentTarget.style.display = 'none'}}/>
                     </div>
                     <div className='Profile_content_information_names'>
                         <h1> { this.state.profile?.fullName } </h1>

@@ -19,7 +19,8 @@ export default class ChatMessage extends React.Component<IProps, IState> {
         return (
             <div className='ChatMessage-component'>
                 <div className='ChatMessage-component_krujochek'>
-                    <img src={this.props.avatar}/>
+                    <img src={this.props.avatar}
+                         onError={event => {event.currentTarget.style.display = 'none'}}/>
                 </div>
                 <div className={'ChatMessage-component_message' + (this.props.isPresenterMessage ? ' presenter_message' : '')}>
                     <div className='ChatMessage-username_block'>
