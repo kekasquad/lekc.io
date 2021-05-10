@@ -39,17 +39,26 @@
     grid-template-rows: 5fr 7fr;
 }
 
-#StreamPresenter-screen_video {
+.StreamPresenter-screen_video_container {
     background-image: url('../assets/stream-screen-placeholder.png');
     background-size: cover;
     background-position: center;
 }
 
-#StreamPresenter-webcam_video {
+.StreamPresenter-webcam_video_container {
     background-image: url('../assets/stream-webcam-placeholder.png');
     background-size: auto 100%;
     background-position: center;
     background-repeat: no-repeat;
+}
+
+.StreamPresenter-video_hidden {
+    opacity: 0;
+}
+
+.StreamPresenter-video_container_hidden {
+    background-image: none;
+    background-color: var(--light-grey);
 }
 
 #StreamPresenter-start_stop_button {

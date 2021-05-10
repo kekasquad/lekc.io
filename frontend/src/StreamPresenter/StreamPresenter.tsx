@@ -52,9 +52,9 @@ class StreamPresenter extends React.Component<IProps, IState> {
             socket: null,
             screenVideo: null,
             webcamVideo: null,
-            screenEnabled: true,
-            webcamEnabled: true,
-            audioEnabled: true
+            screenEnabled: false,
+            webcamEnabled: false,
+            audioEnabled: false
         };
 
         this.startPresenter = this.startPresenter.bind(this);
@@ -76,6 +76,7 @@ class StreamPresenter extends React.Component<IProps, IState> {
         if (!this.state.streamName) { return; }
         if (this.state.stream) {
             await this.state.stream.startPresenter();
+            this.setState({ showChat: true });
         } else {
             const token: string | null = localStorage.getItem('token');
             if (!token) {
@@ -100,7 +101,10 @@ class StreamPresenter extends React.Component<IProps, IState> {
                             socket,
                             stream: new Stream(socket.id, socket, screenVideo, webcamVideo),
                             screenVideo,
-                            webcamVideo
+                            webcamVideo,
+                            screenEnabled: true,
+                            webcamEnabled: true,
+                            audioEnabled: true
                         },
                         async () => {
                             await this.state.stream?.startPresenter();
@@ -189,9 +193,17 @@ class StreamPresenter extends React.Component<IProps, IState> {
                 <NavBar currentTab={1} showNotification={this.props.showNotification} login={this.props.login}/>
                 <div className="StreamPresenter-component">
                     <div className='StreamPresenter-main_area'>
-                        <video id='StreamPresenter-screen_video' autoPlay={true}></video>
+                        <div className={`StreamPresenter-screen_video_container${this.state.screenEnabled ? ' StreamPresenter-video_container_hidden' : ''}`}>
+                            <video id='StreamPresenter-screen_video'
+                                   className={this.state.screenEnabled ? '' : 'StreamPresenter-video_hidden'}
+                                   autoPlay={true}></video>
+                        </div>
                         <div className='StreamPresenter-side_block'>
-                            <video id='StreamPresenter-webcam_video' autoPlay={true}></video>
+                            <div className={`StreamPresenter-webcam_video_container${this.state.webcamEnabled ? ' StreamPresenter-video_container_hidden' : ''}`}>
+                                <video id='StreamPresenter-webcam_video'
+                                       className={this.state.webcamEnabled ? '' : 'StreamPresenter-video_hidden'}
+                                       autoPlay={true}></video>
+                            </div>
                             <div className='StreamPresenter-chat_block'>
                                 { this.state.showChat && this.state.stream && this.state.socket ?
                                     <Chat socket={this.state.socket} streamId={this.state.streamId}
