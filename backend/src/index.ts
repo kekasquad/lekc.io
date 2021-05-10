@@ -310,7 +310,7 @@ mongoose.connect(mongoUri, {
                         error: 'Stream not found'
                     });
                 }
-                UserModel.findById(stream.presenter.userId).exec((presenter: User | null) => {
+                UserModel.findById(stream.presenter.userId).exec().then((presenter: User | null) => {
                     return res.status(200).json({
                         id: stream.id,
                         name: stream.name,

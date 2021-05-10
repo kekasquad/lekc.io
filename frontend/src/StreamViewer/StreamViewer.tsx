@@ -27,6 +27,7 @@ interface IState {
     stream: Stream | null;
     streamName: string;
     streamViewersCount: number;
+    showChat: boolean;
     socket: Socket | null;
     screenVideo: HTMLVideoElement | null;
     webcamVideo: HTMLVideoElement | null;
@@ -42,6 +43,7 @@ class StreamViewer extends React.Component<IProps, IState> {
             stream: null,
             streamName: '',
             streamViewersCount: 0,
+            showChat: false,
             socket: null,
             screenVideo: null,
             webcamVideo: null
@@ -87,6 +89,7 @@ class StreamViewer extends React.Component<IProps, IState> {
                             { socket, stream, screenVideo, webcamVideo },
                             async () => {
                                 await stream.startViewer();
+                                this.setState({ showChat: true });
                             }
                         );
                     } else {
@@ -151,8 +154,10 @@ class StreamViewer extends React.Component<IProps, IState> {
                     <div className='StreamViewer-side_block'>
                         <video id='StreamViewer-webcam_video' autoPlay={true}></video>
                         <div className='StreamViewer-chat_block'>
-                            { this.state.stream && this.state.socket ?
-                                <Chat socket={this.state.socket} streamId={this.state.streamId}/> : '' }
+                            { this.state.showChat && this.state.stream && this.state.socket ?
+                                <Chat socket={this.state.socket} streamId={this.state.streamId}
+                                      login={this.props.login} token={this.props.token}
+                                      showNotification={this.props.showNotification}/> : '' }
                         </div>
                     </div>
                 </div>

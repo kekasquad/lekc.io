@@ -28,6 +28,7 @@ interface IState {
     streamName: string;
     streamNameIsSet: boolean;
     streamViewersCount: number;
+    showChat: boolean;
     socket: Socket | null;
     screenVideo: HTMLVideoElement | null;
     webcamVideo: HTMLVideoElement | null;
@@ -47,6 +48,7 @@ class StreamPresenter extends React.Component<IProps, IState> {
             streamName: '',
             streamNameIsSet: false,
             streamViewersCount: 0,
+            showChat: false,
             socket: null,
             screenVideo: null,
             webcamVideo: null,
@@ -102,6 +104,7 @@ class StreamPresenter extends React.Component<IProps, IState> {
                         },
                         async () => {
                             await this.state.stream?.startPresenter();
+                            this.setState({ showChat: true });
                             this.changeStreamName();
                         }
                     );
@@ -190,8 +193,10 @@ class StreamPresenter extends React.Component<IProps, IState> {
                         <div className='StreamPresenter-side_block'>
                             <video id='StreamPresenter-webcam_video' autoPlay={true}></video>
                             <div className='StreamPresenter-chat_block'>
-                                { this.state.stream && this.state.socket ?
-                                        <Chat socket={this.state.socket} streamId={this.state.streamId}/> : '' }
+                                { this.state.showChat && this.state.stream && this.state.socket ?
+                                    <Chat socket={this.state.socket} streamId={this.state.streamId}
+                                          login={this.props.login} token={this.props.token}
+                                          showNotification={this.props.showNotification}/> : '' }
                             </div>
                         </div>
                     </div>
