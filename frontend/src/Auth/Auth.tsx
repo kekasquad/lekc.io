@@ -108,6 +108,9 @@ export default class Auth extends React.Component<IProps, IState> {
     validateFormFields(): boolean {
         const errors: any = {};
         for (let field of ['login', 'password', 'name']) {
+            if (this.state.loginMode && field === 'name') {
+                continue;
+            }
             if (!((this.state as any)[field])) {
                 errors[field] = FORM_ERROR_MESSAGES.emptyValue;
             }
