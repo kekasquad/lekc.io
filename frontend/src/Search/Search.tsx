@@ -119,7 +119,9 @@ class Search extends React.Component<IProps, IState> {
         const streams = this.state.searchResults.map((item: StreamItem, index: number) =>
             <div key={index} className='Search-stream_item'
                  onClick={() => this.props.history.push(`/stream/${item.id}`)}>
-                <img src={item.avatar} className='Search-stream_item-avatar'/>
+                <div className='Search-stream_item-avatar'>
+                    <img src={item.avatar}/>
+                </div>
                 <div className='Search-stream_item-stream_info_block'>
                     <div className='Search-stream_item-stream_name_block'>
                         <span title={item.presenterName}>{item.presenterName} @{item.presenterLogin}</span>
