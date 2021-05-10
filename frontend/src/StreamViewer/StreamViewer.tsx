@@ -56,50 +56,68 @@ class StreamViewer extends React.Component<IProps, IState> {
             this.back();
             return;
         }
-        const token: string | null = localStorage.getItem('token');
-        if (!token) {
-            this.props.history.push('/login');
-            return;
-        }
-        const socket: Socket = this.state.socket || io(`wss://${serverAddress}`, { query: { token } });
-        const screenVideo: HTMLVideoElement = document.querySelector('#StreamViewer-screen_video') as HTMLVideoElement;
-        const webcamVideo: HTMLVideoElement = document.querySelector('#StreamViewer-webcam_video') as HTMLVideoElement;
-        console.log(screenVideo, webcamVideo);
+        fetch(`https://${serverAddress}/stream/${this.state.streamId}`, {
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${this.props.token}`
+            }
+        }).then((response: Response) => {
+            if (response.status === 401) {
+                this.props.showNotification('error', 'Unauthorized');
+                this.props.history.push('/login');
+            } else if (response.status === 404) {
+                this.props.showNotification('error', 'Stream not found');
+                this.props.history.push('/');
+            } else if (response.status === 200) {
+                const socket: Socket = this.state.socket ||
+                    io(`wss://${serverAddress}`, { query: { token: this.props.token } });
+                const screenVideo: HTMLVideoElement =
+                    document.querySelector('#StreamViewer-screen_video') as HTMLVideoElement;
+                const webcamVideo: HTMLVideoElement =
+                    document.querySelector('#StreamViewer-webcam_video') as HTMLVideoElement;
 
-        socket.on('connect_error', (err: Error) => {
-            console.log('Socket connect error', err);
-        });
+                socket.on('connect_error', (err: Error) => {
+                    this.props.showNotification('error', 'Connection error', 1200);
+                });
 
-        socket.on('connect', () => {
-            if (screenVideo && webcamVideo) {
-                const stream: Stream = new Stream(this.state.streamId, socket, screenVideo, webcamVideo);
-                this.setState(
-                    { socket, stream, screenVideo, webcamVideo },
-                    async () => {
-                        await stream.startViewer();
+                socket.on('connect', () => {
+                    if (screenVideo && webcamVideo) {
+                        const stream: Stream = new Stream(this.state.streamId, socket, screenVideo, webcamVideo);
+                        this.setState(
+                            { socket, stream, screenVideo, webcamVideo },
+                            async () => {
+                                await stream.startViewer();
+                            }
+                        );
+                    } else {
+                        console.error('Cannot load stream');
                     }
-                );
+                });
+
+                socket.on('streamName', (streamId: string, streamName: string) => {
+                    if (this.state.streamId == streamId) {
+                        this.setState({ streamName });
+                    }
+                });
+
+                socket.on('viewersCount', (viewersCount: number) => {
+                    this.setState({ streamViewersCount: viewersCount });
+                });
+
+                socket.on('streamStopped', () => {
+                    this.setState({ stream: null });
+                    this.props.showNotification(
+                        'info', 'Stream ended, you will be redirected to previous page', 4000
+                    );
+                    setTimeout(() => this.back(), 5000);
+                });
             } else {
-                console.error('Cannot load stream');
+                this.props.showNotification('error', 'Failed to load stream');
+                this.props.history.push('/');
             }
-        });
-
-        socket.on('streamName', (streamId: string, streamName: string) => {
-            if (this.state.streamId == streamId) {
-                this.setState({ streamName });
-            }
-        });
-
-        socket.on('viewersCount', (viewersCount: number) => {
-            this.setState({ streamViewersCount: viewersCount });
-        });
-
-        socket.on('streamStopped', () => {
-            this.setState({ stream: null });
-            this.props.showNotification(
-                'info', 'Stream ended, you will be redirected to previous page', 4000
-            );
-            setTimeout(() => this.back(), 5000);
+        }).catch(() => {
+            this.props.showNotification('error', 'Failed to load stream');
+            this.props.history.push('/');
         });
     }
 

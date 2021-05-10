@@ -85,7 +85,7 @@ function App() {
                 <PrivateRoute path='/stream/:id' component={StreamViewer} token={token} login={login}
                               isAuthenticated={!!token} showNotification={showNotification}/>
                 <PrivateRoute path='/profile' component={Profile} token={token} login={login}
-                              isAuthenticated={!!token} showNotification={showNotification}/>       
+                              isAuthenticated={!!token} showNotification={showNotification}/>
                 <Redirect from='/' to='/search'/>
             </Switch>
         </div>

@@ -1,37 +1,59 @@
 @import '../variables.css';
 
-.profile_content {
+.Profile-window_container {
+    width: 100%;
+    height: 100%;
+    display: grid;
+    grid-template-rows: 50px 1fr;
+}
+
+.Profile-content_block {
     display: flex;
     flex-direction: column;
 }
 
-.profile_content_information {
-    display: inline-flex;
-    flex-direction: row;
-    align-items: center;
+.Profile-content_information_block {
+    /*display: inline-flex;*/
+    /*flex-direction: row;*/
+    /*align-items: center;*/
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
 }
 
-.profile_content_information_avatar {
-    height: 16rem;
-    width: 16rem;
+.Profile-content_information_block-avatar {
+    height: 12rem;
+    width: 12rem;
     background-image: url('../assets/default_profile.png');
     background-repeat: no-repeat;
     background-size: contain;
     background-position: center;
     vertical-align: middle;
-    margin: 5rem 2rem 3rem 4rem;
+    margin: 2rem;
     border: 2px solid var(--dark-blue);
     border-radius: 50%;
+    overflow: hidden;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
-.profile_content_information_names {
+.Profile-content_information_block-avatar > img {
+    object-fit: cover;
+    width: 100%;
+    height: 100%;
+}
+
+.Profile_content_information_names {
     font-family: Roboto, 'Open Sans', sans-serif;
     display: flex;
     flex-direction: column;
+    justify-content: center;
 }
 
-h1, h2 {
-    margin: 0.5rem 2rem;
+.Profile_content_information_names h1, .Profile_content_information_names h2 {
+    /*max-width: 60%;*/
+    margin: 0.5rem;
+    word-wrap: break-word;
 }
 
 .profile_content_change {
@@ -49,7 +71,7 @@ h1, h2 {
 }
 
 .profile_content_change_password_form {
-    padding: 2rem 0;
+    padding-bottom: 2rem;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -84,8 +106,13 @@ h1, h2 {
 }
 
 .profile_content_upload_image_btn {
-    width: 10rem;
-    height: 10rem;
+    cursor: pointer;
+}
+
+.profile_content_upload_image_btn > img {
+    width: 5rem;
+    height: 5rem;
+    padding: 1rem;
 }
 
 .profile_content_change_image input {

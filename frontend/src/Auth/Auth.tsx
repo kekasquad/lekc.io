@@ -107,7 +107,7 @@ export default class Auth extends React.Component<IProps, IState> {
 
     validateFormFields(): boolean {
         const errors: any = {};
-        for (let field of ['login', 'password']) {
+        for (let field of ['login', 'password', 'name']) {
             if (!((this.state as any)[field])) {
                 errors[field] = FORM_ERROR_MESSAGES.emptyValue;
             }
@@ -179,8 +179,8 @@ export default class Auth extends React.Component<IProps, IState> {
                         onChange={this.handleInputChange}/>
                 </div>
                 <div className="Auth-form_field">
-                    <label>Name</label>
-                    <input type='text' name='name'
+                    <label>Name*</label>
+                    <input type='text' required name='name'
                         value={this.state.name}
                         onChange={this.handleInputChange}/>
                 </div>

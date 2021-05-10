@@ -3,6 +3,7 @@ import './Profile.css';
 import NavBar from '../NavBar/NavBar';
 import DragAndDrop from '../DragAndDrop/DragAndDrop';
 import { FORM_ERROR_MESSAGES, serverAddress } from '../constants';
+import addFileButtonIcon from '../assets/add-file-button.png';
 
 interface IState {
     isLoading?: boolean;
@@ -58,10 +59,10 @@ export default class Profile extends React.Component<IProps, IState> {
         });
         try {
             const data: any = await (await fetch(`https://${serverAddress}/user`, {
-                "method": "GET",
-                "headers": {
+                'method': 'GET',
+                'headers': {
                     'Content-Type': 'application/json',
-                    "Authorization": `Bearer ${this.props.token}`
+                    'Authorization': `Bearer ${this.props.token}`
                 }
             })).json();
             this.setState({
@@ -83,10 +84,10 @@ export default class Profile extends React.Component<IProps, IState> {
     async updateUser(data: any): Promise<void> {
         try {
             const user: any = await (await fetch(`https://${serverAddress}/user/password `, {
-                "method": "PUT",
-                "headers": {
+                'method': 'PUT',
+                'headers': {
                     'Content-Type': 'application/json',
-                    "Authorization": `Bearer ${this.props.token}`
+                    'Authorization': `Bearer ${this.props.token}`
                 },
                 body: JSON.stringify(data)
             })).json();
@@ -108,9 +109,9 @@ export default class Profile extends React.Component<IProps, IState> {
             const form = new FormData();
             form.append('image', file);
             const data: any = await (await fetch(`https://${serverAddress}/user/avatar`, {
-                "method": "PUT",
-                "headers": {
-                    "Authorization": `Bearer ${this.props.token}`
+                'method': 'PUT',
+                'headers': {
+                    'Authorization': `Bearer ${this.props.token}`
                 },
                 body: form
             })).json();
@@ -189,35 +190,36 @@ export default class Profile extends React.Component<IProps, IState> {
 
     profile(): JSX.Element {
         const view = (
-            <div className="profile_content">
-                <div className="profile_content_information">
-                    <img src={this.state.profile?.avatar} 
-                        className="profile_content_information_avatar"/>
-                    <div className="profile_content_information_names">
+            <div className='Profile-content_block'>
+                <div className='Profile-content_information_block'>
+                    <div className='Profile-content_information_block-avatar'>
+                        <img src={this.state.profile?.avatar}/>
+                    </div>
+                    <div className='Profile_content_information_names'>
                         <h1> { this.state.profile?.fullName } </h1>
-                        <h2> { "@" + this.state.profile?.nickname } </h2>
+                        <h2> { '@' + this.state.profile?.nickname } </h2>
                     </div>
                 </div>
-                <div className="profile_content_change">
-                    <div className="profile_content_change_password">
+                <div className='profile_content_change'>
+                    <div className='profile_content_change_password'>
                         <h3>Change password</h3>
-                        <form className="profile_content_change_password_form">
-                            <div className="form_change_field">
-                                <label>Old password<span className="form_error">{this.state.fieldsError?.oldPasswordError}</span></label>
+                        <form className='profile_content_change_password_form'>
+                            <div className='form_change_field'>
+                                <label>Old password<span className='form_error'>{this.state.fieldsError?.oldPasswordError}</span></label>
                                 <input
                                     type='password' name='oldPassword'
                                     value={this.state.oldPassword}
                                     onChange={this.handleInputChange}/>
                             </div>
-                            <div className="form_change_field">
+                            <div className='form_change_field'>
                                 <label>New password</label>
                                 <input
                                     type='password' name='newPassword'
                                     value={this.state.newPassword}
                                     onChange={this.handleInputChange}/>
                             </div>
-                            <div className="form_change_field">
-                                <label>Repeat new password<span className="form_error">{this.state.fieldsError?.passwordMissmatchError}</span></label>
+                            <div className='form_change_field'>
+                                <label>Repeat new password<span className='form_error'>{this.state.fieldsError?.passwordMissmatchError}</span></label>
                                 <input
                                     type='password' name='newPasswordRepeat'
                                     value={this.state.newPasswordRepeat}
@@ -226,17 +228,19 @@ export default class Profile extends React.Component<IProps, IState> {
                             <button className='form_change_submit_btn btn_text' onClick={this.submitForm}>Save</button>
                         </form>
                     </div>
-                    <form className="profile_content_change_image" encType="multipart/form-data">
+                    <form className='profile_content_change_image' encType='multipart/form-data'>
                         <h3>Change profile image</h3>
                         <DragAndDrop handleFileDrop={this.handleFileDrop}>
                             Add new profile image
-                            <label htmlFor="file-input" className='profile_content_upload_image_btn btn_icon'>
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-                                    <path d="M0 0h24v24H0z" fill="none"/>
-                                    <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
-                                </svg>
+                            <label htmlFor='file-input' className='profile_content_upload_image_btn btn_icon'
+                                   title='Add file'>
+                                {/*<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'>*/}
+                                {/*    <path d='M0 0h24v24H0z' fill='none'/>*/}
+                                {/*    <path d='M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z'/>*/}
+                                {/*</svg>*/}
+                                <img src={addFileButtonIcon}/>
                             </label>
-                            <input id="file-input" accept="image/*" type='file' onChange={ this.handleFileChoose }/>
+                            <input id='file-input' accept='image/*' type='file' onChange={ this.handleFileChoose }/>
                         </DragAndDrop>
                     </form>
                 </div>
@@ -247,9 +251,9 @@ export default class Profile extends React.Component<IProps, IState> {
 
     render(): JSX.Element {
         return (
-            <div className="window">
-                <NavBar showNotification={this.props.showNotification} login={this.props.login}/>
-                { 
+            <div className='Profile-window_container'>
+                <NavBar currentTab={2} showNotification={this.props.showNotification} login={this.props.login}/>
+                {
                     this.state.isLoading ? this.loading() :
                         this.state.loadingError !== undefined ? this.error() :
                         this.profile()

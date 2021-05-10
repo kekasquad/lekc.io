@@ -11,7 +11,8 @@ import searchStreamButtonIcon from '../assets/search-stream-button.png';
 
 enum SelectedTab {
     FIND,
-    STREAM_PRESENTER
+    STREAM_PRESENTER,
+    PROFILE
 }
 
 interface IProps {
@@ -56,8 +57,24 @@ class NavBar extends React.Component<IProps, IState> {
         localStorage.removeItem('token');
     }
 
-    joinStream(): void {
-        this.props.history.push(`/stream/${this.state.streamId}`);
+    async joinStream(): Promise<void> {
+        try {
+            const response = await fetch(`https://${serverAddress}/stream/${this.state.streamId}`, {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                }
+            });
+            if (response.status == 200) {
+                this.props.history.push(`/stream/${this.state.streamId}`);
+            } else if (response.status === 404) {
+                this.props.showNotification('error', 'Stream not found');
+            } else {
+                throw 'Unable to join stream';
+            }
+        } catch {
+            this.props.showNotification('error', 'Unable to join stream');
+        }
     }
 
     render(): JSX.Element {
@@ -98,9 +115,14 @@ class NavBar extends React.Component<IProps, IState> {
                             <img src={logoutButtonIcon} alt='Log out'/>
                         </button>
                     </Link>
-                    <Link to='/profile' className='Navbar-profile_block'>
-                        <h3>{this.props.login}</h3>
-                        <img src={`https://${serverAddress}/user/${this.props.login}/avatar`} className='Navbar-profile_icon' alt='User profile'/>
+                    <Link to='/profile'>
+                        <div className={'Navbar-tab Navbar-profile_block' +
+                            (this.state.currentTab == SelectedTab.PROFILE ? ' Navbar-tab_active' : '') }>
+                            <h3 title={`${this.props.login}'s profile`}>{this.props.login}</h3>
+                            <div className='Navbar-profile_icon'>
+                                <img src={`https://${serverAddress}/user/${this.props.login}/avatar`} alt='User profile'/>
+                            </div>
+                        </div>
                     </Link>
                 </div>
             </nav>
