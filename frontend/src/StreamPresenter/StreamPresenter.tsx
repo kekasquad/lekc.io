@@ -141,6 +141,8 @@ class StreamPresenter extends React.Component<IProps, IState> {
             this.state.stream.stop();
             this.state.socket?.disconnect();
             this.setState({ stream: null, socket: null, streamId: '', });
+            this.props.showNotification('info', 'Stream ended');
+            setTimeout(() => this.props.history.push('/'), 2500);
         } else {
             console.error('No active stream');
         }
