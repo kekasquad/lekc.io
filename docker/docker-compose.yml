@@ -1,0 +1,19 @@
+version: '3'
+
+services: 
+  mongo:
+    image: 'mongo'
+    environment: 
+      - MONGO_INITDB_DATABASE=lekcio
+      - MONGO_INITDB_ROOT_USERNAME=lekcio
+      - MONGO_INITDB_ROOT_PASSWORD=s3cret_mongo
+    ports:
+      - 27017:27017
+
+  kurento:
+    image: 'kurento/kurento-media-server:6'
+    network_mode: host
+    volumes:
+      - ./config/kurento.web-rtc-endpoint.conf:/etc/kurento/modules/kurento/WebRtcEndpoint.conf.ini
+      - ./config/kurento.conf.json:/etc/kurento/kurento.conf.json
+      - ./config/cert+key.pem:/etc/kurento/cert+key.pem

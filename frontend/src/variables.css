@@ -1,0 +1,17 @@
+:root {
+    --light-light-grey: #f4f4f4;
+    --light-grey: #e0e0e0;
+    --common-grey: #c4c4c4;
+    --active-tab-blue: #a0c6e2;
+    --dark-blue-alpha: rgba(0, 131, 225, 0.75);
+    --dark-blue: #0083e1;
+    --common-light-blue: #bcdef5;
+    --light-red: #ff7979;
+    --light-green: #8ed1a5;
+
+    --common-button-width: 8rem;
+    --common-button-height: 2rem;
+
+    --small-button-width: 5rem;
+    --small-button-height: 1.7rem;
+}

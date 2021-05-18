@@ -1,0 +1,53 @@
+@import '../variables.css';
+
+.Chat-component {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    align-items: center;
+}
+
+.Chat-messages_block {
+    width: 100%;
+    height: 100%;
+    overflow-y: auto;
+}
+
+.Chat-messages_block::-webkit-scrollbar {
+    width: 5px;
+}
+.Chat-messages_block::-webkit-scrollbar-thumb {
+    background: var(--dark-blue-alpha);
+}
+.Chat-messages_block::-webkit-scrollbar-track {
+    background: var(--light-grey);
+}
+
+.Chat-messages_block > p {
+    text-align: center;
+    color: var(--dark-blue);
+}
+
+.Chat-input_block {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 10px 5px;
+    background-color: var(--light-light-grey);
+    display: grid;
+    grid-template-columns: 10fr 2fr;
+}
+
+.Chat-input_block > button {
+    width: 100%;
+    box-sizing: border-box;
+    border-radius: 0;
+}
+
+.Chat-input_block > input {
+    width: 100%;
+    height: 100%;
+    box-sizing: border-box;
+    border: none;
+}

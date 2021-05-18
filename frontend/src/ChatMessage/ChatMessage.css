@@ -1,0 +1,69 @@
+@import '../variables.css';
+
+.ChatMessage-component {
+    display: grid;
+    grid-template-columns: [start] 3rem [line2] minmax(0, 1fr) [end];
+    grid-template-rows: [start] auto [end];
+}
+
+.ChatMessage-component_message {
+    overflow-wrap: break-word;
+    padding: 0.5rem;
+    margin: 0.5rem;
+    height: fit-content;
+    border-radius: 7px;
+    background-color: var(--light-grey);
+    grid-column-start: line2;
+    grid-column-end: end;
+    grid-row-start: start;
+    grid-row-end: end;
+}
+
+.ChatMessage-component_krujochek {
+    height: 2.5rem;
+    width: 2.5rem;
+    margin: 0.5rem 0 0 0.5rem;
+    border: 0.5px solid var(--dark-blue);
+    border-radius: 50%;
+    background-image: url('../assets/default_profile.png');
+    background-repeat: no-repeat;
+    background-size: contain;
+    background-position: center;
+    grid-column-start: start;
+    grid-column-end: line2;
+    grid-row-start: start;
+    grid-row-end: end;
+    overflow: hidden;
+}
+
+.ChatMessage-component_krujochek > img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.presenter_message {
+    background-color: var(--common-light-blue);
+}
+
+.ChatMessage-username_block {
+    width: 100%;
+}
+
+.ChatMessage-username_block > h5 {
+    margin: 0;
+}
+
+.ChatMessage-text_block {
+    width: 100%;
+    font-size: 0.9rem;
+}
+
+.ChatMessage-text_block > p {
+    margin: 0;
+}
+
+.ChatMessage-date_block {
+    text-align: right;
+    font-size: 0.7rem;
+}

@@ -1,3 +1,5 @@
+@import './variables.css';
+
 body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
@@ -7,7 +9,81 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+h1, h2, h3, h4, h5, h6 {
+  font-weight: normal;
+}
+
 code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
+}
+
+button:hover {
+  cursor: pointer;
+}
+
+.common_button {
+  width: var(--common-button-width);
+  height: var(--common-button-height);
+  border: 0.5px solid transparent;
+  background-color: var(--common-light-blue);
+  border-radius: 3px;
+}
+
+.common_button:hover {
+  border: 0.5px solid var(--dark-blue-alpha);
+}
+
+.common_button:focus {
+  outline: none;
+}
+
+.small_button {
+  width: var(--small-button-width);
+  height: var(--small-button-height);
+}
+
+.red_button {
+  background-color: var(--light-red);
+}
+
+.green_button {
+  background-color: var(--light-green);
+}
+
+.round_button {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border: none;
+}
+
+.round_button img {
+  width: 18px;
+  height: 18px;
+  vertical-align: center;
+}
+
+.round_button:focus {
+  outline: none;
+}
+
+.form_error {
+  color: var(--light-red);
+  font-size: 0.7em;
+  margin-left: 1rem;
+}
+
+input {
+  border: 0.5px solid var(--dark-blue);
+  border-radius: 2px;
+  height: 1.4rem;
+  padding: 2px 0 2px 0.5rem;
+}
+
+input:focus {
+  outline: none;
 }
