@@ -3,7 +3,7 @@ version: '3'
 services:
   mongo:
     image: 'mongo'
-    environment: 
+    environment:
       - MONGO_INITDB_DATABASE=lekcio
       - MONGO_INITDB_ROOT_USERNAME=lekcio
       - MONGO_INITDB_ROOT_PASSWORD=s3cret_mongo
