@@ -17,3 +17,9 @@ services:
       - ./config/kurento.web-rtc-endpoint.conf:/etc/kurento/modules/kurento/WebRtcEndpoint.conf.ini
       - ./config/kurento.conf.json:/etc/kurento/kurento.conf.json
       - ./config/cert+key.pem:/etc/kurento/cert+key.pem
+
+  coturn:
+    image: 'instrumentisto/coturn'
+    network_mode: host
+    volumes:
+      - ./config/turnserver.conf:/etc/turnserver.conf
