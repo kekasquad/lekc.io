@@ -1,14 +1,17 @@
 version: '3'
 
 services:
+  backend:
+    image: 'lekcio-backend'
+    network_mode: host
+
   mongo:
     image: 'mongo'
     environment: 
       - MONGO_INITDB_DATABASE=lekcio
       - MONGO_INITDB_ROOT_USERNAME=lekcio
       - MONGO_INITDB_ROOT_PASSWORD=s3cret_mongo
-    ports:
-      - 27017:27017
+    network_mode: host
     volumes:
       - mongodb:/data/db
 
